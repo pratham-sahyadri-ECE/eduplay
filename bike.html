@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bike Race – Math Racing</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --blue: #00c6ff;
+            --red: #ff4e50;
+            --gold: #f9ca24;
+            --green: #00e676;
+            --bg: #07071a;
+            --panel-border: rgba(255, 255, 255, 0.09);
+            --text-dim: rgba(255, 255, 255, 0.45);
+            --font-racing: 'Orbitron', monospace;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: #fff;
+            font-family: var(--font-body);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* HUD */
+        .hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .hud-team {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .hud-team.right {
+            align-items: flex-end;
+        }
+
+        .team-name {
+            font-family: var(--font-racing);
+            font-size: .65rem;
+            letter-spacing: 2px;
+        }
+
+        .score-big {
+            font-family: var(--font-racing);
+            font-size: 1.8rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .score-big.blue {
+            color: var(--blue);
+            text-shadow: 0 0 20px var(--blue);
+        }
+
+        .score-big.red {
+            color: var(--red);
+            text-shadow: 0 0 20px var(--red);
+        }
+
+        .hud-center {
+            text-align: center;
+        }
+
+        .q-box {
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 12px;
+            padding: 8px 18px;
+        }
+
+        .q-label {
+            font-family: var(--font-racing);
+            font-size: .55rem;
+            letter-spacing: 2px;
+            color: var(--green);
+        }
+
+        .q-text {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .canvas-wrap {
+            position: fixed;
+            inset: 0;
+            top: 74px;
+        }
+
+        /* Progress bars */
+        .prog-bars {
+            position: fixed;
+            bottom: 55px;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            padding: 6px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(8px);
+        }
+
+        .prog-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .prog-label {
+            font-family: var(--font-racing);
+            font-size: .58rem;
+            letter-spacing: 1px;
+            min-width: 120px;
+        }
+
+        .prog-track {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, .1);
+            overflow: hidden;
+        }
+
+        .prog-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width .4s cubic-bezier(.34, 1.56, .64, 1);
+        }
+
+        .fill-a {
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+        }
+
+        .fill-b {
+            background: linear-gradient(90deg, #ff4e50, #fc913a);
+        }
+
+        /* Input row */
+        .input-row {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--panel-border);
+            height: 50px;
+        }
+
+        .input-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+        }
+
+        .input-cell.right {
+            border-left: 1px solid var(--panel-border);
+        }
+
+        .input-cell input {
+            flex: 1;
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: #fff;
+            font-size: .9rem;
+            font-family: var(--font-racing);
+            outline: none;
+        }
+
+        .input-cell input:focus {
+            border-color: var(--green);
+        }
+
+        .input-cell button {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-racing);
+            font-size: .58rem;
+            letter-spacing: 1px;
+            font-weight: 700;
+            transition: transform .2s;
+        }
+
+        .btn-a {
+            background: linear-gradient(135deg, var(--blue), #0072ff);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(0, 198, 255, .4);
+        }
+
+        .btn-b {
+            background: linear-gradient(135deg, var(--red), #fc913a);
+            color: #fff;
+            box-shadow: 0 0 10px rgba(255, 78, 80, .4);
+        }
+
+        /* Feedback */
+        .answer-feedback {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-family: var(--font-racing);
+            font-size: .72rem;
+            letter-spacing: 1px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .3s;
+            z-index: 20;
+            white-space: nowrap;
+        }
+
+        .answer-feedback.correct {
+            background: rgba(0, 230, 118, .2);
+            border: 1px solid #00e676;
+            color: #00e676;
+        }
+
+        .answer-feedback.wrong {
+            background: rgba(255, 78, 80, .2);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+
+        /* Overlays */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(16px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .4s;
+        }
+
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .overlay-title {
+            font-family: var(--font-racing);
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+        }
+
+        .overlay-sub {
+            font-size: .9rem;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        .overlay-btn {
+            padding: 14px 36px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-family: var(--font-racing);
+            font-size: .75rem;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, var(--green), #00b0ff);
+            color: #fff;
+            margin-top: 8px;
+            box-shadow: 0 4px 20px rgba(0, 230, 118, .5);
+            transition: transform .2s;
+        }
+
+        .overlay-btn:hover {
+            transform: scale(1.06);
+        }
+
+        .countdown-num {
+            font-family: var(--font-racing);
+            font-size: clamp(4rem, 15vw, 9rem);
+            font-weight: 900;
+            animation: pop .4s ease;
+        }
+
+        @keyframes pop {
+            from {
+                transform: scale(1.8);
+                opacity: 0
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1
+            }
+        }
+
+        .neon-gold {
+            color: var(--gold);
+            text-shadow: 0 0 40px var(--gold);
+        }
+
+        .neon-blue {
+            color: var(--blue);
+            text-shadow: 0 0 40px var(--blue);
+        }
+
+        .neon-green {
+            color: var(--green);
+            text-shadow: 0 0 40px var(--green);
+        }
+
+        #confettiCanvas {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            pointer-events: none;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 14px;
+            right: 16px;
+            z-index: 20;
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .12);
+            color: rgba(255, 255, 255, .6);
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: .65rem;
+            cursor: pointer;
+            font-family: var(--font-racing);
+            letter-spacing: 1px;
+            transition: all .2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, .13);
+            color: #fff;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button class="back-btn" onclick="window.location.href='index.html'">← MENU</button>
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- HUD -->
+    <div class="hud">
+        <div class="hud-team">
+            <div class="team-name neon-blue" id="teamAName">Team A</div>
+            <div class="score-big blue" id="scoreA">0</div>
+            <div class="ws-indicator">
+                <div class="ws-dot disconnected" id="wsDot"></div><span id="wsStatus">No Hardware</span>
+            </div>
+        </div>
+        <div class="hud-center">
+            <div class="q-box">
+                <div class="q-label">🏍️ BIKE RACE · <span id="questionNum">Q1</span></div>
+                <div class="q-text" id="questionText">Loading…</div>
+            </div>
+        </div>
+        <div class="hud-team right">
+            <div class="team-name" style="color:var(--red)" id="teamBName">Team B</div>
+            <div class="score-big red" id="scoreB">0</div>
+        </div>
+    </div>
+
+    <div class="answer-feedback" id="answerFeedback"></div>
+
+    <!-- Game Canvas -->
+    <div class="canvas-wrap"><canvas id="bikeCanvas"></canvas></div>
+
+    <!-- Progress bars -->
+    <div class="prog-bars">
+        <div class="prog-row">
+            <div class="prog-label neon-blue" id="progALabel">Team A: 0%</div>
+            <div class="prog-track">
+                <div class="prog-fill fill-a" id="progA" style="width:0%"></div>
+            </div>
+        </div>
+        <div class="prog-row">
+            <div class="prog-label" id="progBLabel" style="color:var(--red)">Team B: 0%</div>
+            <div class="prog-track">
+                <div class="prog-fill fill-b" id="progB" style="width:0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Input row -->
+    <div class="input-row">
+        <div class="input-cell">
+            <input type="number" id="inputA" placeholder="Team A answer…" />
+            <button class="btn-a" id="submitA">✔ A</button>
+        </div>
+        <div class="input-cell right">
+            <input type="number" id="inputB" placeholder="Team B answer…" />
+            <button class="btn-b" id="submitB">✔ B</button>
+        </div>
+    </div>
+
+    <!-- Countdown -->
+    <div class="overlay" id="countdownOverlay">
+        <div class="countdown-num neon-green" id="countdownNum">3</div>
+    </div>
+
+    <!-- Victory -->
+    <div class="overlay" id="victoryOverlay">
+        <div style="font-size:4rem">🏆</div>
+        <div class="overlay-title neon-gold" id="victoryTeam">WINNER!</div>
+        <div class="overlay-sub" id="victoryScores"></div>
+        <button class="overlay-btn" onclick="window.location.href='leaderboard.html'">🏆 LEADERBOARD</button>
+        <button class="overlay-btn" onclick="window.location.href='index.html'">🏠 MAIN MENU</button>
+        <button class="overlay-btn" style="background:linear-gradient(135deg,#ff4e50,#fc913a)"
+            onclick="window.location.href=window.location.href">🔄 PLAY AGAIN</button>
+    </div>
+
+    <script src="audio.js"></script>
+    <script src="physics.js"></script>
+    <script src="game.js"></script>
+    <script>
+        // ── WebSocket (ESP32 keypad) ─────────────────────────────────────
+        let ws = null, wsConnected = false;
+        function connectWS() {
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                ws.onopen = () => { wsConnected = true; setWsDot(true); };
+                ws.onclose = () => { wsConnected = false; setWsDot(false); setTimeout(connectWS, 3000); };
+                ws.onerror = () => { };
+                ws.onmessage = (ev) => {
+                    const match = ev.data.trim().match(/^([AB]):(.+)$/i);
+                    if (match && GS.state === GameLogic.STATE.RACING && GS.currentQuestion) {
+                        handleAnswer(match[1].toUpperCase(), match[2]);
+                    }
+                };
+            } catch (e) { }
+        }
+        function sendWS(cmd) { if (ws && wsConnected) try { ws.send(cmd); } catch (e) { } }
+        function setWsDot(on) {
+            const dot = document.getElementById('wsDot'), txt = document.getElementById('wsStatus');
+            if (dot) dot.className = 'ws-dot ' + (on ? 'connected' : 'disconnected');
+            if (txt) txt.textContent = on ? 'ESP32 Connected' : 'No Hardware';
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const CONFIG = {
+            nameA: params.get('tA') || 'Team A',
+            nameB: params.get('tB') || 'Team B',
+            difficulty: params.get('diff') || 'medium',
+            avA: params.get('avA') || '👦',
+            avB: params.get('avB') || '👧',
+            gameMode: 'bike',
+        };
+
+        const GS = GameLogic.createGameState({ difficulty: CONFIG.difficulty, nameA: CONFIG.nameA, nameB: CONFIG.nameB, raceLength: 6 });
+        const bikeA = new Physics.Vehicle({ boostPower: 0.95, maxVel: 3.0 });
+        const bikeB = new Physics.Vehicle({ boostPower: 0.95, maxVel: 3.0 });
+
+        const canvas = document.getElementById('bikeCanvas');
+        const ctx = canvas.getContext('2d');
+        function resize() { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        // Road scroll
+        let roadOffset = 0; let bgScroll = 0;
+        let wheelieA = 0, wheelieB = 0; // 0=normal, >0=wheelie timer
+
+        function drawBg() {
+            const W = canvas.width, H = canvas.height;
+            // Sky gradient — day to dusk split for each lane
+            const sky = ctx.createLinearGradient(0, 0, 0, H * 0.45);
+            sky.addColorStop(0, '#060616');
+            sky.addColorStop(0.5, '#0f0a28');
+            sky.addColorStop(1, '#1a0e3a');
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, W, H * 0.45);
+
+            // City silhouette
+            ctx.fillStyle = '#120e2a';
+            for (let i = 0; i < 18; i++) {
+                const bx = ((i * 89 + bgScroll * 0.15) % (W + 80) + W + 80) % (W + 80) - 40;
+                const bh = 40 + (i * 37 % 90);
+                ctx.fillRect(bx, H * 0.45 - bh, 28 + i * 5 % 30, bh);
+                // Windows
+                ctx.fillStyle = i % 3 === 0 ? 'rgba(255,240,100,0.4)' : 'rgba(100,180,255,0.2)';
+                for (let wy = 0; wy < bh - 8; wy += 14) {
+                    for (let wx = 4; wx < 26; wx += 10) {
+                        ctx.fillRect(bx + wx, H * 0.45 - bh + wy + 6, 5, 6);
+                    }
+                }
+                ctx.fillStyle = '#120e2a';
+            }
+
+            // Stars
+            for (let i = 0; i < 60; i++) {
+                const sx = ((i * 137 + bgScroll * 0.05) % W + W) % W;
+                const sy = (i * 53) % (H * 0.35);
+                const alpha = 0.4 + 0.4 * Math.sin(i * 0.7 + Date.now() * 0.001);
+                ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+                ctx.beginPath(); ctx.arc(sx, sy, 0.8, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // Ground
+            const ground = ctx.createLinearGradient(0, H * 0.45, 0, H);
+            ground.addColorStop(0, '#18181c');
+            ground.addColorStop(1, '#0a0a0d');
+            ctx.fillStyle = ground;
+            ctx.fillRect(0, H * 0.45, W, H * 0.55);
+        }
+
+        function drawLane(lY, lH) {
+            const W = canvas.width;
+            // Asphalt
+            const asp = ctx.createLinearGradient(0, lY, 0, lY + lH);
+            asp.addColorStop(0, '#29292e');
+            asp.addColorStop(0.5, '#1f1f22');
+            asp.addColorStop(1, '#151518');
+            ctx.fillStyle = asp;
+            ctx.fillRect(0, lY, W, lH);
+
+            // Edge neon lines
+            ctx.strokeStyle = '#00e676';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 12; ctx.shadowColor = '#00e676';
+            ctx.beginPath(); ctx.moveTo(0, lY); ctx.lineTo(W, lY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, lY + lH); ctx.lineTo(W, lY + lH); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Road dashes
+            ctx.setLineDash([28, 18]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            ctx.lineWidth = 2;
+            const midY = lY + lH / 2;
+            ctx.beginPath();
+            const dashOff = roadOffset % 46;
+            ctx.moveTo(-dashOff, midY); ctx.lineTo(W + 50, midY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawBike(bike, x, y, color, avatar, label) {
+            const isWheelying = bike.isBoosting;
+            ctx.save();
+            ctx.translate(x, y);
+            if (isWheelying) { ctx.rotate(-0.22); } // wheelie tilt
+
+            // Glow on boost
+            if (bike.isBoosting) {
+                ctx.shadowBlur = 28; ctx.shadowColor = color;
+            }
+
+            // Bike body
+            const bw = 60, bh = 28;
+            const grad = ctx.createLinearGradient(-bw / 2, -bh, bw / 2, 0);
+            grad.addColorStop(0, color + 'cc');
+            grad.addColorStop(1, color + '44');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(-bw / 2 + 10, -bh);
+            ctx.lineTo(bw / 2 - 6, -bh);
+            ctx.lineTo(bw / 2 + 4, -bh / 2);
+            ctx.lineTo(bw / 2 - 4, 0);
+            ctx.lineTo(-bw / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Wheels
+            const wR = 13;
+            const wheels = [{ wx: -bw / 2 + 8, wy: 4 }, { wx: bw / 2 - 8, wy: 4 }];
+            for (const { wx, wy } of wheels) {
+                ctx.save(); ctx.translate(wx, wy);
+                ctx.rotate(bike.wheelAngle);
+                ctx.fillStyle = '#333';
+                ctx.beginPath(); ctx.arc(0, 0, wR, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#777'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(0, 0, wR, 0, Math.PI * 2); ctx.stroke();
+                // Spokes
+                for (let s = 0; s < 5; s++) {
+                    const a = (s / 5) * Math.PI * 2;
+                    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1.5;
+                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * (wR - 3), Math.sin(a) * (wR - 3)); ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Rider avatar
+            ctx.font = '18px serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(avatar, 0, -bh * 0.7);
+
+            // Exhaust flame on boost
+            if (bike.isBoosting) {
+                ctx.save(); ctx.globalAlpha = 0.85;
+                const flameColors = ['#fff', '#ffe082', '#ff6f00'];
+                for (let i = 0; i < 3; i++) {
+                    const fg = ctx.createRadialGradient(-bw / 2 - 5, 0, 1, -bw / 2 - 12 - i * 5, 0, 10 + i * 3);
+                    fg.addColorStop(0, flameColors[i]);
+                    fg.addColorStop(1, 'transparent');
+                    ctx.fillStyle = fg;
+                    ctx.beginPath();
+                    ctx.ellipse(-bw / 2 - 8 - i * 4, 0, 12 + i * 3, 5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // Label
+            ctx.shadowBlur = 8; ctx.shadowColor = color;
+            ctx.fillStyle = color;
+            ctx.font = 'bold 10px Orbitron,monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            ctx.fillText(label, 0, -bh - 12);
+            ctx.shadowBlur = 0;
+
+            // Dust
+            bike.emitDust(x - bw / 2 - 5, y + 6);
+            bike.dustSystem.draw(ctx);
+
+            ctx.restore();
+        }
+
+        function drawStartFinish(x, lY, lH, label) {
+            ctx.strokeStyle = label === 'FINISH' ? '#f9ca24' : '#00e676';
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 10; ctx.shadowColor = ctx.strokeStyle;
+            ctx.beginPath(); ctx.moveTo(x, lY - 6); ctx.lineTo(x, lY + lH + 6); ctx.stroke();
+            ctx.shadowBlur = 0;
+            if (label === 'FINISH') {
+                for (let r = 0; r < 5; r++) for (let c = 0; c < 2; c++) {
+                    ctx.fillStyle = (r + c) % 2 === 0 ? '#fff' : '#000';
+                    ctx.fillRect(x + c * 8, lY + r * (lH / 5), 8, lH / 5);
+                }
+            }
+            ctx.fillStyle = ctx.strokeStyle = label === 'FINISH' ? '#f9ca24' : '#00e676';
+            ctx.font = 'bold 10px Orbitron,monospace'; ctx.textAlign = 'center';
+            ctx.fillText(label, x + 12, lY - 10);
+        }
+
+        function renderFrame() {
+            const W = canvas.width, H = canvas.height;
+            Physics.updateShake();
+            ctx.save();
+            ctx.translate(Physics.shake.x, Physics.shake.y);
+            ctx.clearRect(-10, -10, W + 20, H + 20);
+            drawBg();
+
+            const trackTop = H * 0.32;
+            const trackTotal = H * 0.58;
+            const lH = trackTotal / 2 - 5;
+            const lAY = trackTop + 2;
+            const lBY = trackTop + lH + 10;
+            const startX = 55, finishX = W - 55;
+            const usableW = finishX - startX;
+
+            drawLane(lAY, lH);
+            drawLane(lBY, lH);
+            drawStartFinish(startX, lAY, lH, 'START');
+            drawStartFinish(startX, lBY, lH, 'START');
+            drawStartFinish(finishX, lAY, lH, 'FINISH');
+            drawStartFinish(finishX, lBY, lH, 'FINISH');
+
+            const bikeAX = startX + bikeA.progress * usableW;
+            const bikeBX = startX + bikeB.progress * usableW;
+            drawBike(bikeA, bikeAX, lAY + lH * 0.6, '#00c6ff', CONFIG.avA, CONFIG.nameA);
+            drawBike(bikeB, bikeBX, lBY + lH * 0.6, '#ff4e50', CONFIG.avB, CONFIG.nameB);
+
+            ctx.restore();
+
+            // Progress UI
+            const pA = Math.round(bikeA.progress * 100);
+            const pB = Math.round(bikeB.progress * 100);
+            document.getElementById('progA').style.width = pA + '%';
+            document.getElementById('progB').style.width = pB + '%';
+            document.getElementById('progALabel').textContent = `${CONFIG.nameA}: ${pA}%`;
+            document.getElementById('progBLabel').textContent = `${CONFIG.nameB}: ${pB}%`;
+            document.getElementById('scoreA').textContent = GS.teamA.score;
+            document.getElementById('scoreB').textContent = GS.teamB.score;
+        }
+
+        let lastT = 0;
+        function gameLoop(ts) {
+            requestAnimationFrame(gameLoop);
+            const dt = Math.min((ts - lastT) / 16.67, 3); lastT = ts;
+
+            if (GS.state === GameLogic.STATE.RACING) {
+                bgScroll += (bikeA.vel + bikeB.vel) * 2;
+                roadOffset += (bikeA.vel + bikeB.vel) * 2.5;
+                bikeA.update(dt); bikeB.update(dt);
+                if (!GS.winner) {
+                    const w = GameLogic.checkVictory(GS, bikeA, bikeB);
+                    if (w) triggerVictory(w);
+                }
+            }
+            renderFrame();
+        }
+        requestAnimationFrame(gameLoop);
+
+        function handleAnswer(team, raw) {
+            if (GS.state !== GameLogic.STATE.RACING) return;
+            const result = GameLogic.validateAnswer(GS, team, raw);
+            GameLogic.applyAnswer(GS, team, result.correct);
+            if (result.correct) {
+                AudioEngine.playEngineBoost();
+                const bike = team === 'A' ? bikeA : bikeB;
+                bike.boost();
+                bike.directBoost(1 / 6);
+                Physics.triggerShake(6);
+                showFeedback(team, true, raw);
+                sendWS(team === 'A' ? 'MOVE_A' : 'MOVE_B');
+                setTimeout(() => {
+                    const w = GameLogic.checkVictory(GS, bikeA, bikeB);
+                    if (w) { triggerVictory(w); return; }
+                    setTimeout(showNextQ, 500);
+                }, 200);
+            } else {
+                AudioEngine.playBuzz();
+                showFeedback(team, false, raw);
+                sendWS(team === 'A' ? 'BUZZ_A' : 'BUZZ_B');
+                setTimeout(showNextQ, 500);
+            }
+        }
+
+        function showFeedback(team, correct, ans) {
+            const name = team === 'A' ? CONFIG.nameA : CONFIG.nameB;
+            const el = document.getElementById('answerFeedback');
+            el.textContent = correct ? `✅ ${name}: ${ans} — CORRECT! Wheelie! 🏍️` : `❌ ${name}: ${ans} — Wrong!`;
+            el.className = 'answer-feedback ' + (correct ? 'correct' : 'wrong');
+            el.style.opacity = '1';
+            setTimeout(() => el.style.opacity = '0', 1800);
+        }
+
+        function showNextQ() {
+            if (GS.state !== GameLogic.STATE.RACING) return;
+            const q = GameLogic.nextQuestion(GS);
+            document.getElementById('questionText').textContent = q.question;
+            document.getElementById('questionNum').textContent = 'Q' + (GS.questionNum + 1);
+        }
+
+        function triggerVictory(winner) {
+            GS.state = GameLogic.STATE.VICTORY;
+            AudioEngine.playVictory();
+            const name = winner === 'A' ? CONFIG.nameA : CONFIG.nameB;
+            const winTeam = winner === 'A' ? GS.teamA : GS.teamB;
+            const loseTeam = winner === 'A' ? GS.teamB : GS.teamA;
+            const elapsed = GS.startTime ? Math.round((Date.now() - GS.startTime) / 1000) : null;
+            GameLogic.saveResult({ ...CONFIG, avA: winner === 'A' ? CONFIG.avA : CONFIG.avB }, winTeam, winTeam.score, winTeam.correct, GS.questionNum, elapsed);
+            GameLogic.saveResult({ ...CONFIG, avA: winner === 'A' ? CONFIG.avB : CONFIG.avA }, loseTeam, loseTeam.score, loseTeam.correct, GS.questionNum, elapsed);
+            document.getElementById('victoryTeam').textContent = name + ' WINS! 🏍️';
+            document.getElementById('victoryTeam').style.color = winner === 'A' ? '#00c6ff' : '#ff4e50';
+            document.getElementById('victoryScores').textContent = `Boosts: ${winTeam.score} | Accuracy: ${GS.questionNum > 0 ? Math.round(winTeam.correct / GS.questionNum * 100) : 0}%`;
+            document.getElementById('victoryOverlay').classList.add('visible');
+            const cc = document.getElementById('confettiCanvas');
+            cc.width = window.innerWidth; cc.height = window.innerHeight;
+            new Physics.ConfettiSystem(cc).start();
+        }
+
+        function startCountdown() {
+            GS.state = GameLogic.STATE.COUNTDOWN;
+            const ov = document.getElementById('countdownOverlay');
+            const num = document.getElementById('countdownNum');
+            ov.classList.add('visible');
+            let count = 3;
+            num.textContent = count;
+            AudioEngine.playCountdownBeep(440);
+            const iv = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    num.textContent = count;
+                    num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
+                    AudioEngine.playCountdownBeep(440);
+                } else {
+                    clearInterval(iv);
+                    num.textContent = 'GO!'; num.className = 'countdown-num neon-gold';
+                    num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
+                    AudioEngine.playGo();
+                    setTimeout(() => { ov.classList.remove('visible'); beginRace(); }, 700);
+                }
+            }, 900);
+        }
+
+        function beginRace() {
+            GS.state = GameLogic.STATE.RACING;
+            GS.startTime = Date.now();
+            AudioEngine.startRaceAmbience();
+            showNextQ();
+        }
+
+        document.getElementById('submitA').addEventListener('click', () => submitTeam('A'));
+        document.getElementById('submitB').addEventListener('click', () => submitTeam('B'));
+        document.getElementById('inputA').addEventListener('keydown', e => { if (e.key === 'Enter') submitTeam('A'); });
+        document.getElementById('inputB').addEventListener('keydown', e => { if (e.key === 'Enter') submitTeam('B'); });
+
+        function submitTeam(team) {
+            if (GS.state !== GameLogic.STATE.RACING) return;
+            const inp = document.getElementById('input' + team);
+            const raw = inp.value.trim();
+            if (!raw) return;
+            handleAnswer(team, raw);
+            inp.value = ''; inp.focus();
+        }
+
+        document.getElementById('teamAName').textContent = CONFIG.nameA;
+        document.getElementById('teamBName').textContent = CONFIG.nameB;
+        connectWS();
+        startCountdown();
+    </script>
+</body>
+
+</html>

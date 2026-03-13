@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GK Race – Math Racing</title>
+    <meta name="description" content="General Knowledge racing – press A B C D or 1 2 3 4 to answer!" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* ── Page Layout ── */
+        body {
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #09090f;
+        }
+
+        /* ── Top HUD ── */
+        #topHud {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, .75);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            flex-shrink: 0;
+            gap: 12px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .hud-team {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, .05);
+            border-radius: 10px;
+            padding: 6px 14px;
+            min-width: 170px;
+        }
+
+        .hud-team-icon {
+            font-size: 1.3rem;
+        }
+
+        .hud-team-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .hud-team-name {
+            font-family: var(--font-racing);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .hud-progress {
+            height: 6px;
+            background: rgba(255, 255, 255, .1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .hud-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .35s ease;
+        }
+
+        .hud-score {
+            font-family: var(--font-racing);
+            font-size: 1.1rem;
+            font-weight: 900;
+            min-width: 26px;
+            text-align: right;
+        }
+
+        .hud-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            text-align: center;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .hud-center-top {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            font-size: .65rem;
+            color: var(--text-dim);
+            font-family: var(--font-racing);
+            letter-spacing: 1.5px;
+        }
+
+        .gk-badge {
+            background: linear-gradient(135deg, #ff9800, #f9ca24);
+            color: #000;
+            font-family: var(--font-racing);
+            font-size: .5rem;
+            letter-spacing: 2px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+        }
+
+        /* Question panel */
+        #questionPanel {
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 14px;
+            padding: 10px 20px;
+            max-width: 560px;
+            width: 100%;
+        }
+
+        #questionNum {
+            font-family: var(--font-racing);
+            font-size: .55rem;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+            margin-bottom: 4px;
+        }
+
+        #questionText {
+            font-family: var(--font-racing);
+            font-size: clamp(.85rem, 1.5vw, 1.2rem);
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: .5px;
+            line-height: 1.3;
+        }
+
+        .hud-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .hud-controls button {
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 8px;
+            color: var(--text-dim);
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .hud-controls button:hover {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+        }
+
+        /* ── Race Canvas ── */
+        #raceCanvas {
+            flex: 1;
+            width: 100%;
+            display: block;
+        }
+
+        /* ── Bottom Options Panel ── */
+        #bottomPanel {
+            display: flex;
+            align-items: stretch;
+            justify-content: center;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, .85);
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            gap: 14px;
+            flex-shrink: 0;
+            z-index: 10;
+            flex-wrap: wrap;
+        }
+
+        .team-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            max-width: 440px;
+        }
+
+        .team-panel-label {
+            font-family: var(--font-racing);
+            font-size: .58rem;
+            letter-spacing: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .team-panel-label .key-hint {
+            font-size: .5rem;
+            color: var(--text-dim);
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .options-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .opt-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, .1);
+            background: rgba(255, 255, 255, .05);
+            color: #fff;
+            font-size: .82rem;
+            font-family: var(--font-body, 'Inter', sans-serif);
+            transition: all .15s ease;
+            text-align: left;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .opt-btn:hover {
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .opt-key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            font-family: var(--font-racing);
+            font-size: .7rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        /* Team A colours */
+        .team-a-panel .opt-btn {
+            border-color: rgba(0, 198, 255, .2);
+        }
+
+        .team-a-panel .opt-btn:hover {
+            border-color: rgba(0, 198, 255, .5);
+            background: rgba(0, 198, 255, .08);
+        }
+
+        .team-a-panel .opt-key {
+            background: rgba(0, 198, 255, .2);
+            color: #00c6ff;
+        }
+
+        /* Team B colours */
+        .team-b-panel .opt-btn {
+            border-color: rgba(255, 78, 80, .2);
+        }
+
+        .team-b-panel .opt-btn:hover {
+            border-color: rgba(255, 78, 80, .5);
+            background: rgba(255, 78, 80, .08);
+        }
+
+        .team-b-panel .opt-key {
+            background: rgba(255, 78, 80, .2);
+            color: #ff4e50;
+        }
+
+        /* Active pressed state */
+        .opt-btn.pressed {
+            transform: scale(.97);
+        }
+
+        .opt-btn.flash-correct {
+            background: rgba(0, 230, 118, .25) !important;
+            border-color: #00e676 !important;
+        }
+
+        .opt-btn.flash-wrong {
+            background: rgba(255, 78, 80, .25) !important;
+            border-color: #ff4e50 !important;
+            animation: shake .3s ease;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-4px);
+            }
+
+            50% {
+                transform: translateX(4px);
+            }
+
+            75% {
+                transform: translateX(-4px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        .panel-divider {
+            width: 1px;
+            background: rgba(255, 255, 255, .08);
+            flex-shrink: 0;
+        }
+
+        /* ── Answer Feedback ── */
+        .answer-feedback {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 40, .95);
+            border-radius: 50px;
+            padding: 10px 28px;
+            font-family: var(--font-racing);
+            font-size: .82rem;
+            z-index: 500;
+            border: 1px solid rgba(255, 255, 255, .1);
+            transition: opacity .4s;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .answer-feedback.correct {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .answer-feedback.wrong {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* ── Countdown ── */
+        #countdownOverlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .75);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s;
+        }
+
+        #countdownOverlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .countdown-num {
+            font-family: var(--font-racing);
+            font-size: clamp(5rem, 20vw, 12rem);
+            font-weight: 900;
+            animation: countPulse .75s ease-out;
+        }
+
+        @keyframes countPulse {
+            0% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(.9);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ── Victory Overlay ── */
+        #victoryOverlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            background: rgba(0, 0, 0, .88);
+            z-index: 1100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .5s;
+        }
+
+        #victoryOverlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .v-trophy {
+            font-size: 5rem;
+            animation: trophyBounce 1s ease-out;
+        }
+
+        @keyframes trophyBounce {
+            0% {
+                transform: scale(0) rotate(-25deg);
+            }
+
+            70% {
+                transform: scale(1.2) rotate(6deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        #victoryTeam {
+            font-family: var(--font-racing);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900;
+        }
+
+        #victoryScores {
+            font-size: 1rem;
+            color: var(--text-dim);
+        }
+
+        .v-actions {
+            display: flex;
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        /* ── Confetti Canvas ── */
+        #confettiCanvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1050;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Top HUD ── -->
+    <div id="topHud">
+
+        <!-- Team A -->
+        <div class="hud-team">
+            <span class="hud-team-icon">🔵</span>
+            <div class="hud-team-info">
+                <div class="hud-team-name neon-blue" id="teamAName">Team A</div>
+                <div class="hud-progress">
+                    <div class="hud-progress-fill" id="progA"
+                        style="width:0%;background:linear-gradient(90deg,#0072ff,#00c6ff);"></div>
+                </div>
+                <div style="font-size:.62rem;color:var(--text-dim);" id="progALabel">0%</div>
+            </div>
+            <div class="hud-score neon-blue" id="scoreA">0</div>
+        </div>
+
+        <!-- Center -->
+        <div class="hud-center">
+            <div class="hud-center-top">
+                <span class="gk-badge">🧠 GK RACE</span>
+                <span id="questionNum" style="font-size:.58rem;letter-spacing:2px;">Q1</span>
+                <span id="catBadge" style="color:var(--gold)">ALL</span>
+            </div>
+            <div id="questionPanel">
+                <div id="questionText">Get ready…</div>
+            </div>
+        </div>
+
+        <!-- Team B -->
+        <div class="hud-team">
+            <span class="hud-team-icon">🔴</span>
+            <div class="hud-team-info">
+                <div class="hud-team-name neon-red" id="teamBName">Team B</div>
+                <div class="hud-progress">
+                    <div class="hud-progress-fill" id="progB"
+                        style="width:0%;background:linear-gradient(90deg,#c0392b,#ff4e50);"></div>
+                </div>
+                <div style="font-size:.62rem;color:var(--text-dim);" id="progBLabel">0%</div>
+            </div>
+            <div class="hud-score neon-red" id="scoreB">0</div>
+        </div>
+
+        <!-- Controls -->
+        <div class="hud-controls">
+            <button id="muteBtn" title="Toggle sound">🔊</button>
+            <button id="backBtn" title="Back to setup">↩</button>
+        </div>
+    </div>
+
+    <!-- ── Race Canvas ── -->
+    <canvas id="raceCanvas"></canvas>
+
+    <!-- ── Answer Feedback ── -->
+    <div class="answer-feedback" id="answerFeedback"></div>
+
+    <!-- ── Bottom Options Panel ── -->
+    <div id="bottomPanel">
+
+        <!-- Team A Options -->
+        <div class="team-panel team-a-panel">
+            <div class="team-panel-label neon-blue">
+                🔵 <span id="labelA">TEAM A</span>
+                <span class="key-hint">Keys: A B C D</span>
+            </div>
+            <div class="options-row" id="optionsA">
+                <button class="opt-btn" data-idx="0" data-team="A"><span class="opt-key">A</span><span
+                        class="opt-text">—</span></button>
+                <button class="opt-btn" data-idx="1" data-team="A"><span class="opt-key">B</span><span
+                        class="opt-text">—</span></button>
+                <button class="opt-btn" data-idx="2" data-team="A"><span class="opt-key">C</span><span
+                        class="opt-text">—</span></button>
+                <button class="opt-btn" data-idx="3" data-team="A"><span class="opt-key">D</span><span
+                        class="opt-text">—</span></button>
+            </div>
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <!-- Team B Options -->
+        <div class="team-panel team-b-panel">
+            <div class="team-panel-label neon-red">
+                🔴 <span id="labelB">TEAM B</span>
+                <span class="key-hint">Keys: 1 2 3 4</span>
+            </div>
+            <div class="options-row" id="optionsB">
+                <button class="opt-btn" data-idx="0" data-team="B"><span class="opt-key">1</span><span
+                        class="opt-text">—</span></button>
+                <button class="opt-btn" data-idx="1" data-team="B"><span class="opt-key">2</span><span
+                        class="opt-text">—</span></button>
+                <button class="opt-btn" data-idx="2" data-team="B"><span class="opt-key">3</span><span
+                        class="opt-text">—</span></button>
+                <button class="opt-btn" data-idx="3" data-team="B"><span class="opt-key">4</span><span
+                        class="opt-text">—</span></button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── Countdown ── -->
+    <div id="countdownOverlay">
+        <div class="countdown-num neon-blue" id="countdownNum">3</div>
+    </div>
+
+    <!-- ── Victory Overlay ── -->
+    <div id="victoryOverlay">
+        <div class="v-trophy">🏆</div>
+        <div id="victoryTeam">WINNER!</div>
+        <div id="victoryScores"></div>
+        <div class="v-actions">
+            <button class="btn btn-primary" id="playAgainBtn">🔄 Race Again</button>
+            <button class="btn btn-ghost" id="lbBtn">🏆 Leaderboard</button>
+        </div>
+    </div>
+
+    <!-- ── Confetti Canvas ── -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- ── Scripts ── -->
+    <script src="audio.js"></script>
+    <script src="physics.js"></script>
+    <script src="game.js"></script>
+    <script src="gk-questions.js"></script>
+    <script>
+        (() => {
+            'use strict';
+
+            // ── URL Params ──────────────────────────────────────────────────────
+            const p = new URLSearchParams(window.location.search);
+            const cfg = {
+                nameA: p.get('tA') || 'Team A',
+                nameB: p.get('tB') || 'Team B',
+                avA: p.get('avA') || '👦',
+                avB: p.get('avB') || '👧',
+                len: parseInt(p.get('len') || '10'),
+                category: p.get('cat') || 'all',
+                gameMode: 'gk-' + (p.get('mode') || 'car'),
+            };
+
+            // ── HUD init ────────────────────────────────────────────────────────
+            document.getElementById('teamAName').textContent = cfg.nameA;
+            document.getElementById('teamBName').textContent = cfg.nameB;
+            document.getElementById('labelA').textContent = cfg.nameA.toUpperCase();
+            document.getElementById('labelB').textContent = cfg.nameB.toUpperCase();
+            document.getElementById('catBadge').textContent = cfg.category.toUpperCase();
+
+            // ── Game State ──────────────────────────────────────────────────────
+            let questions = GKQuestions.getRandomSet(cfg.len, cfg.category);
+            let qIdx = 0;
+            let scoreA = 0;
+            let scoreB = 0;
+            let correctA = 0;
+            let correctB = 0;
+            let totalA = 0;
+            let totalB = 0;
+            let gameRunning = false;
+            let startTs = null;
+            let answered = false;        // prevent double answer for same question
+            let currentQ = null;
+
+            // ── Canvas / Renderer (Car Race visual) ─────────────────────────────
+            const canvas = document.getElementById('raceCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // Vehicle state: position 0..1
+            const vA = { x: 0, y: 0, boost: 0, trail: [], finished: false, color: '#00c6ff' };
+            const vB = { x: 0, y: 0, boost: 0, trail: [], finished: false, color: '#ff4e50' };
+
+            const TRACK_LANES = { A: 0.35, B: 0.65 }; // y fraction
+            const FINISH_X = 0.92;
+            let lastTs = null;
+
+            function resizeCanvas() {
+                canvas.width = canvas.clientWidth;
+                canvas.height = canvas.clientHeight;
+                vA.y = canvas.height * TRACK_LANES.A;
+                vB.y = canvas.height * TRACK_LANES.B;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Road scroll offset
+            let roadOffset = 0;
+
+            function drawFrame(ts) {
+                if (!lastTs) lastTs = ts;
+                const dt = Math.min((ts - lastTs) / 1000, 0.05);
+                lastTs = ts;
+
+                const W = canvas.width, H = canvas.height;
+                ctx.clearRect(0, 0, W, H);
+
+                // ── Sky gradient ──
+                const sky = ctx.createLinearGradient(0, 0, 0, H);
+                sky.addColorStop(0, '#05051a');
+                sky.addColorStop(1, '#0a0a2e');
+                ctx.fillStyle = sky;
+                ctx.fillRect(0, 0, W, H);
+
+                // ── Stars ──
+                ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                for (let i = 0; i < 80; i++) {
+                    const sx = ((i * 137.5 + roadOffset * 0.1) % W + W) % W;
+                    const sy = (i * 71.3) % (H * 0.55);
+                    const sr = 0.5 + (i % 3) * 0.4;
+                    ctx.beginPath(); ctx.arc(sx, sy, sr, 0, Math.PI * 2); ctx.fill();
+                }
+
+                // ── Road ──
+                const roadTop = H * 0.2;
+                const roadBottom = H * 0.8;
+                const roadGrad = ctx.createLinearGradient(0, roadTop, 0, roadBottom);
+                roadGrad.addColorStop(0, '#111128');
+                roadGrad.addColorStop(1, '#1a1a38');
+                ctx.fillStyle = roadGrad;
+                ctx.fillRect(0, roadTop, W, roadBottom - roadTop);
+
+                // Road edge neon lines
+                ctx.strokeStyle = 'rgba(0,198,255,0.4)';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, roadTop); ctx.lineTo(W, roadTop); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, roadBottom); ctx.lineTo(W, roadBottom); ctx.stroke();
+
+                // Dashed centre lines
+                roadOffset = (roadOffset + (gameRunning ? 200 : 0) * dt) % 60;
+                ctx.setLineDash([28, 32]);
+                ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+                ctx.lineWidth = 2;
+                // separator A/B
+                const midY = H * 0.5;
+                ctx.beginPath(); ctx.moveTo(-roadOffset, midY); ctx.lineTo(W, midY); ctx.stroke();
+                ctx.setLineDash([]);
+
+                // ── Finish line ──
+                const fx = FINISH_X * W;
+                const tileH = 12;
+                for (let gy = roadTop; gy < roadBottom; gy += tileH) {
+                    ctx.fillStyle = ((gy - roadTop) / tileH % 2 < 1) ? '#fff' : '#000';
+                    ctx.fillRect(fx, gy, 14, tileH);
+                }
+                // Glow
+                ctx.shadowColor = '#f9ca24';
+                ctx.shadowBlur = 18;
+                ctx.strokeStyle = '#f9ca24';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(fx, roadTop); ctx.lineTo(fx, roadBottom); ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // ── Update vehicles ──
+                const SPEED_BASE = 0.04;   // per second at rest
+                const SPEED_BOOST = 0.22;   // boost velocity per correct answer
+
+                if (gameRunning) {
+                    for (const v of [vA, vB]) {
+                        if (v.finished) continue;
+                        const speed = SPEED_BASE + v.boost;
+                        v.x = Math.min(v.x + speed * dt, FINISH_X + 0.02);
+                        v.boost = Math.max(v.boost - 0.6 * dt, 0);
+
+                        if (v.x >= FINISH_X && !v.finished) {
+                            v.finished = true;
+                            if (!vA.finished || !vB.finished) {
+                                const winner = v === vA ? 'A' : 'B';
+                                setTimeout(() => endGame(winner), 300);
+                            }
+                        }
+                    }
+                }
+
+                // ── Draw car A ──
+                drawCar(ctx, vA.x * W, vA.y, '#00c6ff', '#0072ff', vA.boost > 0);
+                // ── Draw car B ──
+                drawCar(ctx, vB.x * W, vB.y, '#ff4e50', '#c0392b', vB.boost > 0);
+
+                // ── Progress HUD ──
+                const pA = Math.round(Math.min(vA.x / FINISH_X, 1) * 100);
+                const pB = Math.round(Math.min(vB.x / FINISH_X, 1) * 100);
+                document.getElementById('progA').style.width = pA + '%';
+                document.getElementById('progB').style.width = pB + '%';
+                document.getElementById('progALabel').textContent = pA + '%';
+                document.getElementById('progBLabel').textContent = pB + '%';
+
+                requestAnimationFrame(drawFrame);
+            }
+
+            function drawCar(ctx, x, y, col1, col2, boosting) {
+                ctx.save();
+                ctx.translate(x, y);
+
+                // Boost flame
+                if (boosting) {
+                    const flameGrad = ctx.createLinearGradient(-50, 0, -20, 0);
+                    flameGrad.addColorStop(0, 'transparent');
+                    flameGrad.addColorStop(0.5, 'rgba(255,160,0,0.7)');
+                    flameGrad.addColorStop(1, 'rgba(255,80,0,0.9)');
+                    ctx.fillStyle = flameGrad;
+                    const fw = 30 + Math.random() * 12;
+                    ctx.beginPath();
+                    ctx.ellipse(-25, 0, fw, 5, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Body
+                const bg = ctx.createLinearGradient(-28, -10, 28, 10);
+                bg.addColorStop(0, col1);
+                bg.addColorStop(1, col2);
+                ctx.fillStyle = bg;
+                ctx.shadowColor = col1;
+                ctx.shadowBlur = boosting ? 18 : 8;
+                ctx.beginPath();
+                ctx.roundRect(-28, -10, 56, 20, [6]);
+                ctx.fill();
+
+                // Cabin
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath();
+                ctx.roundRect(-10, -17, 26, 10, [4]);
+                ctx.fill();
+                ctx.fillStyle = 'rgba(0,198,255,0.4)';
+                ctx.beginPath();
+                ctx.roundRect(-8, -15, 22, 7, [3]);
+                ctx.fill();
+
+                // Wheels
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#222';
+                [[-18, 10], [16, 10], [-18, -10], [16, -10]].forEach(([wx, wy]) => {
+                    ctx.beginPath(); ctx.arc(wx, wy, 5, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#555';
+                    ctx.beginPath(); ctx.arc(wx, wy, 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#222';
+                });
+
+                ctx.restore();
+            }
+
+            requestAnimationFrame(drawFrame);
+
+            // ── Question Management ──────────────────────────────────────────────
+            function loadQuestion() {
+                if (qIdx >= questions.length) {
+                    endGame(scoreA >= scoreB ? 'A' : 'B');
+                    return;
+                }
+                currentQ = questions[qIdx];
+                answered = false;
+
+                document.getElementById('questionNum').textContent = `Q${qIdx + 1} / ${questions.length}`;
+                document.getElementById('questionText').textContent = currentQ.q;
+
+                // Update option buttons for both panels
+                ['A', 'B'].forEach(team => {
+                    const container = document.getElementById('options' + team);
+                    container.querySelectorAll('.opt-btn').forEach((btn, i) => {
+                        btn.querySelector('.opt-text').textContent = currentQ.opts[i];
+                        btn.classList.remove('flash-correct', 'flash-wrong', 'pressed');
+                    });
+                });
+            }
+
+            function handleAnswer(team, idx) {
+                if (!gameRunning || answered) return;
+                answered = true;
+
+                const correct = idx === currentQ.ans;
+                const vehicle = team === 'A' ? vA : vB;
+
+                if (team === 'A') { totalA++; if (correct) { scoreA++; correctA++; } }
+                else { totalB++; if (correct) { scoreB++; correctB++; } }
+
+                // Update scores
+                document.getElementById('scoreA').textContent = scoreA;
+                document.getElementById('scoreB').textContent = scoreB;
+
+                // Visual flash on button
+                const container = document.getElementById('options' + team);
+                const btns = container.querySelectorAll('.opt-btn');
+                btns[idx].classList.add(correct ? 'flash-correct' : 'flash-wrong');
+
+                // Also highlight correct answer
+                if (!correct) btns[currentQ.ans].classList.add('flash-correct');
+
+                // Boost vehicle
+                if (correct) vehicle.boost += SPEED_BOOST_CONST;
+
+                // Feedback banner
+                showFeedback(
+                    correct ? `✅ +1 for ${team === 'A' ? cfg.nameA : cfg.nameB}!` : `❌ Wrong! Correct: ${currentQ.opts[currentQ.ans]}`,
+                    correct ? 'correct' : 'wrong'
+                );
+
+                qIdx++;
+                setTimeout(loadQuestion, 1500);
+            }
+
+            const SPEED_BOOST_CONST = 0.22;
+
+            function showFeedback(msg, type) {
+                const el = document.getElementById('answerFeedback');
+                el.textContent = msg;
+                el.className = 'answer-feedback ' + type;
+                el.style.opacity = '1';
+                setTimeout(() => { el.style.opacity = '0'; }, 1400);
+            }
+
+            // ── Keyboard Handler ─────────────────────────────────────────────────
+            const keyMapA = { 'a': 0, 'b': 1, 'c': 2, 'd': 3 };
+            const keyMapB = { '1': 0, '2': 1, '3': 2, '4': 3 };
+
+            window.addEventListener('keydown', e => {
+                if (!gameRunning) return;
+                const k = e.key.toLowerCase();
+                if (k in keyMapA) handleAnswer('A', keyMapA[k]);
+                else if (k in keyMapB) handleAnswer('B', keyMapB[k]);
+            });
+
+            // ── Button click handler ─────────────────────────────────────────────
+            document.querySelectorAll('.opt-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (!gameRunning) return;
+                    btn.classList.add('pressed');
+                    handleAnswer(btn.dataset.team, parseInt(btn.dataset.idx));
+                });
+            });
+
+            // ── End Game ─────────────────────────────────────────────────────────
+            function endGame(winner) {
+                gameRunning = false;
+                const elapsed = startTs ? (Date.now() - startTs) / 1000 : 0;
+
+                const winnerName = winner === 'A' ? cfg.nameA : cfg.nameB;
+                const winnerScore = winner === 'A' ? scoreA : scoreB;
+                const winnerCorr = winner === 'A' ? correctA : correctB;
+                const winnerTotal = winner === 'A' ? totalA : totalB;
+
+                document.getElementById('victoryTeam').textContent = `🏆 ${winnerName} WINS!`;
+                document.getElementById('victoryTeam').style.color = winner === 'A' ? '#00c6ff' : '#ff4e50';
+                document.getElementById('victoryScores').innerHTML =
+                    `${cfg.nameA}: ${scoreA} pts &nbsp;•&nbsp; ${cfg.nameB}: ${scoreB} pts`;
+
+                document.getElementById('victoryOverlay').classList.add('visible');
+                launchConfetti();
+
+                // Save to leaderboard
+                try {
+                    GameLogic.saveResult(
+                        { avA: cfg.avA, avB: cfg.avB, veh: '🧠', difficulty: 'gk', gameMode: cfg.gameMode },
+                        { name: winnerName },
+                        winnerScore,
+                        winnerCorr,
+                        winnerTotal,
+                        Math.round(elapsed)
+                    );
+                } catch (e) { console.warn('Leaderboard save failed', e); }
+            }
+
+            // ── Confetti ─────────────────────────────────────────────────────────
+            function launchConfetti() {
+                const cc = document.getElementById('confettiCanvas');
+                const cctx = cc.getContext('2d');
+                cc.width = window.innerWidth;
+                cc.height = window.innerHeight;
+                const bits = Array.from({ length: 120 }, () => ({
+                    x: Math.random() * cc.width,
+                    y: Math.random() * -cc.height,
+                    vx: (Math.random() - .5) * 4,
+                    vy: 2 + Math.random() * 4,
+                    size: 6 + Math.random() * 8,
+                    color: ['#f9ca24', '#00c6ff', '#ff4e50', '#00e676', '#a855f7', '#ff9800'][Math.floor(Math.random() * 6)],
+                    rot: Math.random() * 360,
+                    rotV: (Math.random() - .5) * 8,
+                }));
+                let alive = true;
+                function cframe() {
+                    if (!alive) return;
+                    cctx.clearRect(0, 0, cc.width, cc.height);
+                    bits.forEach(b => {
+                        b.x += b.vx; b.y += b.vy; b.rot += b.rotV;
+                        cctx.save();
+                        cctx.translate(b.x, b.y);
+                        cctx.rotate(b.rot * Math.PI / 180);
+                        cctx.fillStyle = b.color;
+                        cctx.fillRect(-b.size / 2, -b.size / 2, b.size, b.size * .5);
+                        cctx.restore();
+                    });
+                    requestAnimationFrame(cframe);
+                }
+                cframe();
+                setTimeout(() => { alive = false; cctx.clearRect(0, 0, cc.width, cc.height); }, 4000);
+            }
+
+            // ── Countdown then Start ──────────────────────────────────────────────
+            function startCountdown() {
+                const overlay = document.getElementById('countdownOverlay');
+                const num = document.getElementById('countdownNum');
+                overlay.classList.add('visible');
+                let n = 3;
+                num.textContent = n;
+                const iv = setInterval(() => {
+                    n--;
+                    if (n <= 0) {
+                        clearInterval(iv);
+                        num.textContent = 'GO!';
+                        num.style.color = '#00e676';
+                        setTimeout(() => {
+                            overlay.classList.remove('visible');
+                            gameRunning = true;
+                            startTs = Date.now();
+                            loadQuestion();
+                        }, 700);
+                    } else {
+                        num.textContent = n;
+                        num.style.color = '';
+                    }
+                }, 900);
+            }
+
+            // ── Action Buttons ───────────────────────────────────────────────────
+            document.getElementById('backBtn').addEventListener('click', () => {
+                window.location.href = `gk-setup.html?mode=${p.get('mode') || 'car'}`;
+            });
+
+            document.getElementById('playAgainBtn').addEventListener('click', () => {
+                window.location.reload();
+            });
+
+            document.getElementById('lbBtn').addEventListener('click', () => {
+                window.location.href = 'leaderboard.html';
+            });
+
+            let muted = false;
+            document.getElementById('muteBtn').addEventListener('click', () => {
+                muted = !muted;
+                document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
+                if (typeof AudioManager !== 'undefined') AudioManager.toggle?.();
+            });
+
+            // ── Kick off ─────────────────────────────────────────────────────────
+            startCountdown();
+
+        })();
+    </script>
+</body>
+
+</html>

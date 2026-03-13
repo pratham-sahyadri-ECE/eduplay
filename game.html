@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Race – Math Racing</title>
+    <meta name="description" content="Live math racing game – answer questions to accelerate your vehicle!" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* ── Page Layout ─────────────────────────────────────── */
+        body {
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #09090f;
+        }
+
+        /* ── Top HUD ─────────────────────────────────────────── */
+        #topHud {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, .7);
+            border-bottom: 1px solid rgba(255, 255, 255, .08);
+            flex-shrink: 0;
+            gap: 12px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .hud-team {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, .05);
+            border-radius: 10px;
+            padding: 6px 14px;
+            min-width: 170px;
+        }
+
+        .hud-team-icon {
+            font-size: 1.3rem;
+        }
+
+        .hud-team-info {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .hud-team-name {
+            font-family: var(--font-racing);
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .hud-progress {
+            height: 6px;
+            background: rgba(255, 255, 255, .1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .hud-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width .35s ease;
+        }
+
+        .hud-score {
+            font-family: var(--font-racing);
+            font-size: 1.1rem;
+            font-weight: 900;
+            min-width: 26px;
+            text-align: right;
+        }
+
+        .hud-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            text-align: center;
+        }
+
+        .hud-center-title {
+            font-family: var(--font-racing);
+            font-size: .6rem;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+        }
+
+        #questionPanel {
+            background: rgba(255, 255, 255, .06);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 12px;
+            padding: 8px 20px;
+            text-align: center;
+        }
+
+        #questionNum {
+            font-family: var(--font-racing);
+            font-size: .6rem;
+            letter-spacing: 2px;
+            color: var(--text-dim);
+        }
+
+        #questionText {
+            font-family: var(--font-racing);
+            font-size: clamp(1rem, 2.5vw, 1.6rem);
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            white-space: nowrap;
+        }
+
+        .hud-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .hud-controls button {
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 8px;
+            color: var(--text-dim);
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .hud-controls button:hover {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+        }
+
+        .ws-indicator {
+            display: flex;
+            align-items: center;
+            font-size: .68rem;
+            color: var(--text-dim);
+        }
+
+        /* ── Canvas ──────────────────────────────────────────── */
+        #raceCanvas {
+            flex: 1;
+            width: 100%;
+            display: block;
+        }
+
+        /* ── Bottom Answer Panel ─────────────────────────────── */
+        #bottomPanel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 20px;
+            background: rgba(0, 0, 0, .8);
+            border-top: 1px solid rgba(255, 255, 255, .08);
+            gap: 12px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .answer-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .answer-box label {
+            font-family: var(--font-racing);
+            font-size: .65rem;
+            letter-spacing: 1.5px;
+            white-space: nowrap;
+        }
+
+        .answer-box input {
+            flex: 1;
+            max-width: 120px;
+            padding: 8px 12px;
+            font-size: 1rem;
+            font-family: var(--font-racing);
+            border-radius: 8px;
+        }
+
+        .answer-box button {
+            padding: 8px 18px;
+            font-size: .72rem;
+        }
+
+        .answer-divider {
+            width: 1px;
+            height: 36px;
+            background: rgba(255, 255, 255, .1);
+        }
+
+        /* ── Answer Feedback ─────────────────────────────────── */
+        .answer-feedback {
+            position: fixed;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 40, .95);
+            border-radius: 50px;
+            padding: 10px 28px;
+            font-family: var(--font-racing);
+            font-size: .82rem;
+            z-index: 500;
+            border: 1px solid rgba(255, 255, 255, .1);
+            transition: opacity .4s;
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .answer-feedback.correct {
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .answer-feedback.wrong {
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+        /* ── Countdown Overlay ───────────────────────────────── */
+        #countdownOverlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .75);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s;
+        }
+
+        #countdownOverlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .countdown-num {
+            font-family: var(--font-racing);
+            font-size: clamp(5rem, 20vw, 12rem);
+            font-weight: 900;
+            animation: countPulse .75s ease-out;
+        }
+
+        /* ── Victory Overlay ─────────────────────────────────── */
+        #victoryOverlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            background: rgba(0, 0, 0, .88);
+            z-index: 1100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .5s;
+        }
+
+        #victoryOverlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .v-trophy {
+            font-size: 5rem;
+            animation: trophyBounce 1s ease-out;
+        }
+
+        @keyframes trophyBounce {
+            0% {
+                transform: scale(0) rotate(-25deg);
+            }
+
+            70% {
+                transform: scale(1.2) rotate(6deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        #victoryTeam {
+            font-family: var(--font-racing);
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 900;
+        }
+
+        #victoryScores {
+            font-family: var(--font-ui);
+            font-size: 1rem;
+            color: var(--text-dim);
+        }
+
+        .v-actions {
+            display: flex;
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        /* ── Confetti Canvas  ────────────────────────────────── */
+        #confettiCanvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 1050;
+        }
+
+        @keyframes countPulse {
+            0% {
+                transform: scale(2.2);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(.9);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ── Top HUD ──────────────────────────────────────────────── -->
+    <div id="topHud">
+
+        <!-- Team A -->
+        <div class="hud-team">
+            <span class="hud-team-icon">🔵</span>
+            <div class="hud-team-info">
+                <div class="hud-team-name neon-blue" id="teamAName">Team A</div>
+                <div class="hud-progress">
+                    <div class="hud-progress-fill" id="progA"
+                        style="width:0%;background:linear-gradient(90deg,#0072ff,#00c6ff);"></div>
+                </div>
+                <div style="font-size:.62rem;color:var(--text-dim);" id="progALabel">0%</div>
+            </div>
+            <div class="hud-score neon-blue" id="scoreA">0</div>
+        </div>
+
+        <!-- Center: Question + WS Status -->
+        <div class="hud-center" style="flex:1;min-width:240px;">
+            <div class="ws-indicator">
+                <span class="ws-dot" id="wsDot"></span>
+                <span id="wsStatus">Connecting…</span>
+                &nbsp;|&nbsp;
+                <span id="diffBadge" class="badge">MEDIUM</span>
+            </div>
+            <div id="questionPanel">
+                <div id="questionNum">Q1</div>
+                <div id="questionText">Get ready…</div>
+            </div>
+        </div>
+
+        <!-- Team B -->
+        <div class="hud-team">
+            <span class="hud-team-icon">🔴</span>
+            <div class="hud-team-info">
+                <div class="hud-team-name neon-red" id="teamBName">Team B</div>
+                <div class="hud-progress">
+                    <div class="hud-progress-fill" id="progB"
+                        style="width:0%;background:linear-gradient(90deg,#c0392b,#ff4e50);"></div>
+                </div>
+                <div style="font-size:.62rem;color:var(--text-dim);" id="progBLabel">0%</div>
+            </div>
+            <div class="hud-score neon-red" id="scoreB">0</div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="hud-controls">
+            <button id="muteBtn" title="Toggle sound">🔊</button>
+            <button id="backBtn" title="Back to setup">↩</button>
+        </div>
+    </div>
+
+    <!-- ── Race Canvas ───────────────────────────────────────────── -->
+    <canvas id="raceCanvas"></canvas>
+
+    <!-- ── Answer Feedback ──────────────────────────────────────── -->
+    <div class="answer-feedback" id="answerFeedback"></div>
+
+    <!-- ── Bottom Answer Panel ──────────────────────────────────── -->
+    <div id="bottomPanel">
+
+        <!-- Team A answer -->
+        <div class="answer-box">
+            <label class="neon-blue">🔵 <span id="labelA">TEAM A</span></label>
+            <input type="number" id="inputA" placeholder="Answer…" autocomplete="off" />
+            <button class="btn btn-primary" id="submitA" style="padding:8px 14px;font-size:.65rem;">SUBMIT</button>
+        </div>
+
+        <div class="answer-divider"></div>
+
+        <!-- Team B answer -->
+        <div class="answer-box" style="justify-content:flex-end;">
+            <label class="neon-red">🔴 <span id="labelB">TEAM B</span></label>
+            <input type="number" id="inputB" placeholder="Answer…" autocomplete="off" />
+            <button class="btn btn-danger" id="submitB" style="padding:8px 14px;font-size:.65rem;">SUBMIT</button>
+        </div>
+
+    </div>
+
+    <!-- ── Countdown Overlay ─────────────────────────────────────── -->
+    <div id="countdownOverlay">
+        <div class="countdown-num neon-blue" id="countdownNum">3</div>
+    </div>
+
+    <!-- ── Victory Overlay ──────────────────────────────────────── -->
+    <div id="victoryOverlay">
+        <div class="v-trophy">🏆</div>
+        <div id="victoryTeam">WINNER!</div>
+        <div id="victoryScores"></div>
+        <div class="v-actions">
+            <button class="btn btn-primary" id="playAgainBtn">🔄 Race Again</button>
+            <button class="btn btn-ghost" id="lbBtn">🏆 Leaderboard</button>
+        </div>
+    </div>
+
+    <!-- ── Confetti Canvas ───────────────────────────────────────── -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- ── Scripts ───────────────────────────────────────────────── -->
+    <script src="audio.js"></script>
+    <script src="physics.js"></script>
+    <script src="game.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
