@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Racing – Smart Classroom Edition</title>
+  <meta name="description" content="Choose your game mode and race to victory by solving math problems!" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --blue: #00c6ff;
+      --red: #ff4e50;
+      --gold: #f9ca24;
+      --green: #00e676;
+      --purple: #a855f7;
+      --bg: #07071a;
+      --panel: rgba(255, 255, 255, 0.04);
+      --panel-border: rgba(255, 255, 255, 0.09);
+      --text-dim: rgba(255, 255, 255, 0.45);
+      --font-racing: 'Orbitron', monospace;
+      --font-body: 'Inter', sans-serif;
+      --transition: all 0.25s ease;
+    }
+
+    html,
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: #fff;
+      font-family: var(--font-body);
+      overflow-x: hidden;
+    }
+
+    /* ── Animated starfield ── */
+    .starfield {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .starfield canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Layout ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 24px 60px;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 52px;
+    }
+
+    .hero-badge {
+      display: inline-block;
+      font-family: var(--font-racing);
+      font-size: 0.6rem;
+      letter-spacing: 4px;
+      color: var(--gold);
+      border: 1px solid rgba(249, 202, 36, 0.3);
+      padding: 5px 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      animation: pulse-badge 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-badge {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 rgba(249, 202, 36, 0);
+      }
+
+      50% {
+        box-shadow: 0 0 20px rgba(249, 202, 36, 0.35);
+      }
+    }
+
+    .hero h1 {
+      font-family: var(--font-racing);
+      font-size: clamp(2rem, 6vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      background: linear-gradient(135deg, var(--blue) 0%, #fff 50%, var(--red) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 0 30px rgba(0, 198, 255, 0.3));
+    }
+
+    .hero p {
+      color: var(--text-dim);
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    /* ── Game Cards Grid ── */
+    .select-title {
+      font-family: var(--font-racing);
+      font-size: 0.65rem;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .select-title::before,
+    .select-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--panel-border);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
+      width: 100%;
+      max-width: 960px;
+    }
+
+    @media (max-width: 640px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── Individual Card ── */
+    .game-card {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s cubic-bezier(.34, 1.56, .64, 1), box-shadow 0.3s ease;
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+    }
+
+    .game-card:hover {
+      transform: translateY(-8px) scale(1.02);
+    }
+
+    .game-card:hover .card-bg {
+      opacity: 0.22;
+    }
+
+    .game-card:hover .card-btn {
+      transform: scale(1.07);
+    }
+
+    .game-card:hover .card-icon {
+      transform: scale(1.15) rotate(-5deg);
+    }
+
+    .game-card:active {
+      transform: translateY(-4px) scale(1.01);
+    }
+
+    /* Glow border on hover */
+    .game-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 21px;
+      background: var(--card-glow, linear-gradient(135deg, #00c6ff, #ff4e50));
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .game-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-bg {
+      position: absolute;
+      inset: 0;
+      opacity: 0.1;
+      transition: opacity 0.4s ease;
+      z-index: 0;
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 1;
+      padding: 34px 30px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 280px;
+    }
+
+    .card-icon {
+      font-size: 3.6rem;
+      line-height: 1;
+      transition: transform 0.3s cubic-bezier(.34, 1.56, .64, 1);
+      display: block;
+      filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.4));
+    }
+
+    .card-number {
+      font-family: var(--font-racing);
+      font-size: 0.58rem;
+      letter-spacing: 2px;
+      color: var(--card-accent, var(--blue));
+      opacity: 0.8;
+    }
+
+    .card-name {
+      font-family: var(--font-racing);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .card-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .card-tag {
+      font-size: 0.65rem;
+      font-family: var(--font-racing);
+      letter-spacing: 1px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--font-racing);
+      font-size: 0.72rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      background: var(--card-btn-bg, linear-gradient(135deg, #00c6ff, #0072ff));
+      color: #fff;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 4px 20px var(--card-btn-shadow, rgba(0, 198, 255, 0.4));
+      align-self: flex-start;
+      text-decoration: none;
+    }
+
+    /* ── Card Themes ── */
+    .card-car {
+      --card-glow: linear-gradient(135deg, #00c6ff, #0072ff);
+      --card-accent: #00c6ff;
+      --card-btn-bg: linear-gradient(135deg, #00c6ff, #0072ff);
+      --card-btn-shadow: rgba(0, 198, 255, 0.5);
+    }
+
+    .card-tug {
+      --card-glow: linear-gradient(135deg, #ff4e50, #fc913a);
+      --card-accent: #ff4e50;
+      --card-btn-bg: linear-gradient(135deg, #ff4e50, #fc913a);
+      --card-btn-shadow: rgba(255, 78, 80, 0.5);
+    }
+
+    .card-bike {
+      --card-glow: linear-gradient(135deg, #00e676, #00b0ff);
+      --card-accent: #00e676;
+      --card-btn-bg: linear-gradient(135deg, #00e676, #00b0ff);
+      --card-btn-shadow: rgba(0, 230, 118, 0.5);
+    }
+
+    .card-rocket {
+      --card-glow: linear-gradient(135deg, #a855f7, #ec4899);
+      --card-accent: #a855f7;
+      --card-btn-bg: linear-gradient(135deg, #a855f7, #ec4899);
+      --card-btn-shadow: rgba(168, 85, 247, 0.5);
+    }
+
+    /* Card-specific backgrounds */
+    .card-car .card-bg {
+      background: radial-gradient(ellipse at 80% 20%, #00c6ff55, transparent 65%), radial-gradient(ellipse at 20% 80%, #0072ff33, transparent 60%);
+    }
+
+    .card-tug .card-bg {
+      background: radial-gradient(ellipse at 80% 20%, #ff4e5055, transparent 65%), radial-gradient(ellipse at 20% 80%, #fc913a33, transparent 60%);
+    }
+
+    .card-bike .card-bg {
+      background: radial-gradient(ellipse at 80% 20%, #00e67655, transparent 65%), radial-gradient(ellipse at 20% 80%, #00b0ff33, transparent 60%);
+    }
+
+    .card-rocket .card-bg {
+      background: radial-gradient(ellipse at 80% 20%, #a855f755, transparent 65%), radial-gradient(ellipse at 20% 80%, #ec489933, transparent 60%);
+    }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 52px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .footer a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer a:hover {
+      color: var(--blue);
+    }
+
+    /* ── Floating particles CSS ── */
+    .floater {
+      position: fixed;
+      pointer-events: none;
+      font-size: 1.4rem;
+      animation: float-up linear infinite;
+      opacity: 0;
+      z-index: 0;
+    }
+
+    @keyframes float-up {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 0.6;
+      }
+
+      90% {
+        opacity: 0.3;
+      }
+
+      100% {
+        transform: translateY(-20vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Starfield canvas -->
+  <div class="starfield"><canvas id="starCanvas"></canvas></div>
+
+  <!-- Floating emoji particles -->
+  <div id="floaters"></div>
+
+  <div class="page">
+
+    <!-- ── Hero ── -->
+    <header class="hero">
+      <div class="hero-badge">🎓 SMART CLASSROOM EDITION</div>
+      <h1>MATH RACING</h1>
+      <p>Solve math problems to power your racer. Pick your game mode and compete against your classmates!</p>
+    </header>
+
+    <!-- ── Game Mode Select ── -->
+    <div class="select-title">Choose Your Game Mode</div>
+
+    <div class="cards-grid">
+
+      <!-- 1. Car Race -->
+      <div class="game-card card-car" onclick="selectGame('car')">
+        <div class="card-bg"></div>
+        <div class="card-content">
+          <span class="card-icon">🏎️</span>
+          <div class="card-number">MODE 01</div>
+          <div class="card-name">Car Race</div>
+          <div class="card-desc">Burn rubber on a neon night track. Answer math questions to boost your sports car past
+            the competition!</div>
+          <div class="card-tags">
+            <span class="card-tag">2 PLAYERS</span>
+            <span class="card-tag">SIDE SCROLL</span>
+            <span class="card-tag">6 LAPS</span>
+          </div>
+          <button class="card-btn">▶ PLAY NOW</button>
+        </div>
+      </div>
+
+      <!-- 2. Tug of War -->
+      <div class="game-card card-tug" onclick="selectGame('tug')">
+        <div class="card-bg"></div>
+        <div class="card-content">
+          <span class="card-icon">💪</span>
+          <div class="card-number">MODE 02</div>
+          <div class="card-name">Tug of War</div>
+          <div class="card-desc">Grip the rope! Every correct answer yanks the rope toward your side. Pull your opponent
+            past the line to win!</div>
+          <div class="card-tags">
+            <span class="card-tag">2 PLAYERS</span>
+            <span class="card-tag">ROPE PHYSICS</span>
+            <span class="card-tag">6 PULLS</span>
+          </div>
+          <button class="card-btn">▶ PLAY NOW</button>
+        </div>
+      </div>
+
+      <!-- 3. Bike Race -->
+      <div class="game-card card-bike" onclick="selectGame('bike')">
+        <div class="card-bg"></div>
+        <div class="card-content">
+          <span class="card-icon">🏍️</span>
+          <div class="card-number">MODE 03</div>
+          <div class="card-name">Bike Race</div>
+          <div class="card-desc">Hit the open road on a roaring motorbike. Wheelie your way to the finish line with
+            every correct answer!</div>
+          <div class="card-tags">
+            <span class="card-tag">2 PLAYERS</span>
+            <span class="card-tag">WHEELIE MODE</span>
+            <span class="card-tag">6 BOOSTS</span>
+          </div>
+          <button class="card-btn">▶ PLAY NOW</button>
+        </div>
+      </div>
+
+      <!-- 4. Rocket Race -->
+      <div class="game-card card-rocket" onclick="selectGame('rocket')">
+        <div class="card-bg"></div>
+        <div class="card-content">
+          <span class="card-icon">🚀</span>
+          <div class="card-number">MODE 04</div>
+          <div class="card-name">Rocket Race</div>
+          <div class="card-desc">Blast off into outer space! Correct answers fire your rocket engines — be first to
+            reach the stars!</div>
+          <div class="card-tags">
+            <span class="card-tag">2 PLAYERS</span>
+            <span class="card-tag">VERTICAL</span>
+            <span class="card-tag">6 STAGES</span>
+          </div>
+          <button class="card-btn">▶ PLAY NOW</button>
+        </div>
+      </div>
+
+    </div><!-- end cards-grid -->
+
+    <!-- ── Footer ── -->
+    <footer class="footer">
+      <a href="leaderboard.html">🏆 Leaderboard</a>
+      <span>·</span>
+      <span>Math Racing v2.0</span>
+      <span>·</span>
+      <span>Smart Classroom Edition</span>
+    </footer>
+
+  </div><!-- end page -->
+
+  <script>
+    // ── Game select → Subject picker
+    function selectGame(mode) {
+      window.location.href = `subject.html?mode=${mode}`;
+    }
+
+    // ── Starfield
+    const starC = document.getElementById('starCanvas');
+    const starCtx = starC.getContext('2d');
+    let stars = [];
+    function initStars() {
+      starC.width = window.innerWidth;
+      starC.height = window.innerHeight;
+      stars = [];
+      for (let i = 0; i < 200; i++) {
+        stars.push({
+          x: Math.random() * starC.width,
+          y: Math.random() * starC.height,
+          r: Math.random() * 1.6 + 0.3,
+          alpha: Math.random() * 0.7 + 0.2,
+          speed: Math.random() * 0.3 + 0.05,
+          twinkle: Math.random() * Math.PI * 2,
+        });
+      }
+    }
+    function drawStars(ts) {
+      starCtx.clearRect(0, 0, starC.width, starC.height);
+      for (const s of stars) {
+        s.twinkle += 0.02;
+        const a = s.alpha * (0.6 + 0.4 * Math.sin(s.twinkle));
+        starCtx.beginPath();
+        starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        starCtx.fillStyle = `rgba(255,255,255,${a})`;
+        starCtx.fill();
+      }
+      requestAnimationFrame(drawStars);
+    }
+    window.addEventListener('resize', initStars);
+    initStars();
+    requestAnimationFrame(drawStars);
+
+    // ── Floating emoji particles
+    const floatEmojis = ['🏎️', '🚀', '💡', '➕', '➗', '✖️', '🔢', '🏁', '💥', '⭐', '🏆', '🔥'];
+    const floaterContainer = document.getElementById('floaters');
+    function spawnFloater() {
+      const el = document.createElement('div');
+      el.className = 'floater';
+      el.textContent = floatEmojis[Math.floor(Math.random() * floatEmojis.length)];
+      el.style.left = Math.random() * 100 + 'vw';
+      const dur = 8 + Math.random() * 12;
+      const delay = Math.random() * 6;
+      el.style.animationDuration = dur + 's';
+      el.style.animationDelay = delay + 's';
+      el.style.fontSize = (0.9 + Math.random() * 1.2) + 'rem';
+      floaterContainer.appendChild(el);
+      setTimeout(() => el.remove(), (dur + delay) * 1000 + 500);
+    }
+    for (let i = 0; i < 18; i++) spawnFloater();
+    setInterval(spawnFloater, 2500);
+
+    // ── Card hover parallax
+    document.querySelectorAll('.game-card').forEach(card => {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = (e.clientX - cx) / (rect.width / 2);
+        const dy = (e.clientY - cy) / (rect.height / 2);
+        card.style.transform = `translateY(-8px) scale(1.02) rotateX(${-dy * 5}deg) rotateY(${dx * 5}deg)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = '';
+      });
+    });
+  </script>
+</body>
+
+</html>

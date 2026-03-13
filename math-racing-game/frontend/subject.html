@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Choose Subject – Math Racing</title>
+    <meta name="description" content="Choose your subject: Maths or General Knowledge racing!" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --blue: #00c6ff;
+            --red: #ff4e50;
+            --gold: #f9ca24;
+            --green: #00e676;
+            --purple: #a855f7;
+            --orange: #ff9800;
+            --bg: #07071a;
+            --panel: rgba(255, 255, 255, 0.04);
+            --panel-border: rgba(255, 255, 255, 0.09);
+            --text-dim: rgba(255, 255, 255, 0.45);
+            --font-racing: 'Orbitron', monospace;
+            --font-body: 'Inter', sans-serif;
+        }
+
+        html,
+        body {
+            min-height: 100vh;
+            background: var(--bg);
+            color: #fff;
+            font-family: var(--font-body);
+            overflow-x: hidden;
+        }
+
+        /* ── Starfield ── */
+        .starfield {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .starfield canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ── Layout ── */
+        .page {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 24px 60px;
+            min-height: 100vh;
+        }
+
+        /* ── Back link ── */
+        .back-link {
+            align-self: flex-start;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: .78rem;
+            font-family: var(--font-racing);
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            transition: color .2s;
+        }
+
+        .back-link:hover {
+            color: var(--blue);
+        }
+
+        /* ── Hero ── */
+        .hero {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .mode-badge-hero {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--font-racing);
+            font-size: .58rem;
+            letter-spacing: 3px;
+            color: var(--gold);
+            border: 1px solid rgba(249, 202, 36, .3);
+            padding: 5px 18px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-family: var(--font-racing);
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            font-weight: 900;
+            line-height: 1.1;
+            background: linear-gradient(135deg, var(--blue) 0%, #fff 50%, var(--gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 0 24px rgba(0, 198, 255, .3));
+        }
+
+        .hero p {
+            color: var(--text-dim);
+            font-size: .95rem;
+            line-height: 1.7;
+            max-width: 440px;
+            margin: 0 auto;
+        }
+
+        /* ── Divider label ── */
+        .select-title {
+            font-family: var(--font-racing);
+            font-size: .6rem;
+            letter-spacing: 3px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            max-width: 720px;
+        }
+
+        .select-title::before,
+        .select-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--panel-border);
+        }
+
+        /* ── Cards ── */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            width: 100%;
+            max-width: 720px;
+        }
+
+        @media (max-width: 580px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .subject-card {
+            position: relative;
+            border-radius: 22px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(.34, 1.56, .64, 1), box-shadow 0.3s ease;
+            border: 1px solid var(--panel-border);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(14px);
+        }
+
+        .subject-card:hover {
+            transform: translateY(-10px) scale(1.02);
+        }
+
+        .subject-card:hover .card-bg {
+            opacity: 0.22;
+        }
+
+        .subject-card:hover .card-icon {
+            transform: scale(1.18) rotate(-6deg);
+        }
+
+        .subject-card:hover .card-btn {
+            transform: scale(1.07);
+        }
+
+        .subject-card:active {
+            transform: translateY(-5px) scale(1.01);
+        }
+
+        /* Glow rim */
+        .subject-card::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 23px;
+            background: var(--card-glow);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+
+        .subject-card:hover::before {
+            opacity: 1;
+        }
+
+        .card-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.1;
+            transition: opacity .4s ease;
+            z-index: 0;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 1;
+            padding: 40px 34px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-height: 320px;
+        }
+
+        .card-icon {
+            font-size: 4rem;
+            line-height: 1;
+            transition: transform .3s cubic-bezier(.34, 1.56, .64, 1);
+            display: block;
+            filter: drop-shadow(0 4px 16px rgba(0, 0, 0, .4));
+        }
+
+        .card-label {
+            font-family: var(--font-racing);
+            font-size: .52rem;
+            letter-spacing: 2px;
+            color: var(--card-accent);
+            opacity: .8;
+        }
+
+        .card-name {
+            font-family: var(--font-racing);
+            font-size: 1.55rem;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.15;
+        }
+
+        .card-desc {
+            font-size: .87rem;
+            color: var(--text-dim);
+            line-height: 1.65;
+            flex: 1;
+        }
+
+        .card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .card-tag {
+            font-size: .62rem;
+            font-family: var(--font-racing);
+            letter-spacing: 1px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, .07);
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: rgba(255, 255, 255, .6);
+        }
+
+        .card-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 13px 26px;
+            border-radius: 12px;
+            border: none;
+            font-family: var(--font-racing);
+            font-size: .7rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            background: var(--card-btn-bg);
+            color: #fff;
+            transition: transform .2s ease, box-shadow .2s ease;
+            box-shadow: 0 4px 22px var(--card-btn-shadow);
+            align-self: flex-start;
+        }
+
+        /* ── Card Themes ── */
+        .card-maths {
+            --card-glow: linear-gradient(135deg, #00c6ff, #0072ff);
+            --card-accent: #00c6ff;
+            --card-btn-bg: linear-gradient(135deg, #00c6ff, #0072ff);
+            --card-btn-shadow: rgba(0, 198, 255, .5);
+        }
+
+        .card-maths .card-bg {
+            background: radial-gradient(ellipse at 80% 20%, #00c6ff55, transparent 65%),
+                radial-gradient(ellipse at 20% 80%, #0072ff33, transparent 60%);
+        }
+
+        .card-gk {
+            --card-glow: linear-gradient(135deg, #ff9800, #f9ca24);
+            --card-accent: #ff9800;
+            --card-btn-bg: linear-gradient(135deg, #ff9800, #f9ca24);
+            --card-btn-shadow: rgba(255, 152, 0, .5);
+        }
+
+        .card-gk .card-bg {
+            background: radial-gradient(ellipse at 80% 20%, #ff980055, transparent 65%),
+                radial-gradient(ellipse at 20% 80%, #f9ca2433, transparent 60%);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            margin-top: 52px;
+            text-align: center;
+            font-size: .75rem;
+            color: var(--text-dim);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .footer a {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: color .2s;
+        }
+
+        .footer a:hover {
+            color: var(--blue);
+        }
+
+        /* ── Floaters ── */
+        .floater {
+            position: fixed;
+            pointer-events: none;
+            font-size: 1.4rem;
+            animation: float-up linear infinite;
+            opacity: 0;
+            z-index: 0;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: .6;
+            }
+
+            90% {
+                opacity: .3;
+            }
+
+            100% {
+                transform: translateY(-20vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Starfield -->
+    <div class="starfield"><canvas id="starCanvas"></canvas></div>
+
+    <!-- Floaters -->
+    <div id="floaters"></div>
+
+    <div class="page">
+
+        <a href="index.html" class="back-link">← Back to Game Select</a>
+
+        <!-- Hero -->
+        <header class="hero">
+            <div class="mode-badge-hero">
+                <span id="modeEmoji">🏎️</span>
+                <span id="modeName">CAR RACE</span>
+            </div>
+            <h1>CHOOSE YOUR SUBJECT</h1>
+            <p>Race with <strong>Maths</strong> equations or test your brainpower with <strong>General
+                    Knowledge</strong>!</p>
+        </header>
+
+        <div class="select-title">Select Subject</div>
+
+        <div class="cards-grid">
+
+            <!-- Maths Card -->
+            <div class="subject-card card-maths" id="mathsCard">
+                <div class="card-bg"></div>
+                <div class="card-content">
+                    <span class="card-icon">🔢</span>
+                    <div class="card-label">SUBJECT 01</div>
+                    <div class="card-name">Mathematics</div>
+                    <div class="card-desc">Solve arithmetic, algebra and number puzzles. Correct answers boost your
+                        vehicle forward on the track!</div>
+                    <div class="card-tags">
+                        <span class="card-tag">KEYBOARD INPUT</span>
+                        <span class="card-tag">TYPED ANSWERS</span>
+                        <span class="card-tag">3 DIFFICULTIES</span>
+                    </div>
+                    <button class="card-btn">▶ PLAY MATHS</button>
+                </div>
+            </div>
+
+            <!-- GK Card -->
+            <div class="subject-card card-gk" id="gkCard">
+                <div class="card-bg"></div>
+                <div class="card-content">
+                    <span class="card-icon">🧠</span>
+                    <div class="card-label">SUBJECT 02</div>
+                    <div class="card-name">General Knowledge</div>
+                    <div class="card-desc">Science, History, Geography, Sports & more! Choose A / B / C / D with your
+                        keyboard to race ahead!</div>
+                    <div class="card-tags">
+                        <span class="card-tag">A B C D KEYS</span>
+                        <span class="card-tag">4 OPTIONS</span>
+                        <span class="card-tag">80+ QUESTIONS</span>
+                    </div>
+                    <button class="card-btn">▶ PLAY GK</button>
+                </div>
+            </div>
+
+        </div>
+
+        <footer class="footer">
+            <a href="leaderboard.html">🏆 Leaderboard</a>
+            <span>·</span>
+            <span>Math Racing v2.0</span>
+            <span>·</span>
+            <span>Smart Classroom Edition</span>
+        </footer>
+
+    </div><!-- end page -->
+
+    <script>
+        // ── Read game mode from URL ──────────────────────────────────────────
+        const params = new URLSearchParams(window.location.search);
+        const gameMode = params.get('mode') || 'car';
+
+        const modeInfo = {
+            car: { emoji: '🏎️', name: 'CAR RACE' },
+            tug: { emoji: '💪', name: 'TUG OF WAR' },
+            bike: { emoji: '🏍️', name: 'BIKE RACE' },
+            rocket: { emoji: '🚀', name: 'ROCKET RACE' },
+        };
+        const mi = modeInfo[gameMode] || modeInfo.car;
+        document.getElementById('modeEmoji').textContent = mi.emoji;
+        document.getElementById('modeName').textContent = mi.name;
+
+        // ── Navigation ───────────────────────────────────────────────────────
+        document.getElementById('mathsCard').addEventListener('click', () => {
+            window.location.href = `setup.html?mode=${gameMode}`;
+        });
+        document.getElementById('gkCard').addEventListener('click', () => {
+            window.location.href = `gk-setup.html?mode=${gameMode}`;
+        });
+
+        // ── Parallax tilt on cards ────────────────────────────────────────────
+        document.querySelectorAll('.subject-card').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const r = card.getBoundingClientRect();
+                const dx = (e.clientX - r.left - r.width / 2) / (r.width / 2);
+                const dy = (e.clientY - r.top - r.height / 2) / (r.height / 2);
+                card.style.transform = `translateY(-10px) scale(1.02) rotateX(${-dy * 5}deg) rotateY(${dx * 5}deg)`;
+            });
+            card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+        });
+
+        // ── Starfield ─────────────────────────────────────────────────────────
+        const sc = document.getElementById('starCanvas');
+        const sctx = sc.getContext('2d');
+        let stars = [];
+        function initStars() {
+            sc.width = window.innerWidth; sc.height = window.innerHeight;
+            stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * sc.width,
+                    y: Math.random() * sc.height,
+                    r: Math.random() * 1.6 + 0.3,
+                    alpha: Math.random() * .7 + .2,
+                    twinkle: Math.random() * Math.PI * 2,
+                });
+            }
+        }
+        function drawStars() {
+            sctx.clearRect(0, 0, sc.width, sc.height);
+            for (const s of stars) {
+                s.twinkle += .02;
+                const a = s.alpha * (.6 + .4 * Math.sin(s.twinkle));
+                sctx.beginPath();
+                sctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                sctx.fillStyle = `rgba(255,255,255,${a})`;
+                sctx.fill();
+            }
+            requestAnimationFrame(drawStars);
+        }
+        window.addEventListener('resize', initStars);
+        initStars(); requestAnimationFrame(drawStars);
+
+        // ── Floating particles ────────────────────────────────────────────────
+        const floatEmojis = ['🔢', '🧠', '💡', '📚', '🌍', '⭐', '🏆', '🔥', '✏️', '🎯', '🌟', '📖'];
+        const fc = document.getElementById('floaters');
+        function spawnFloater() {
+            const el = document.createElement('div');
+            el.className = 'floater';
+            el.textContent = floatEmojis[Math.floor(Math.random() * floatEmojis.length)];
+            el.style.left = Math.random() * 100 + 'vw';
+            const dur = 8 + Math.random() * 12;
+            const delay = Math.random() * 6;
+            el.style.animationDuration = dur + 's';
+            el.style.animationDelay = delay + 's';
+            el.style.fontSize = (.9 + Math.random() * 1.2) + 'rem';
+            fc.appendChild(el);
+            setTimeout(() => el.remove(), (dur + delay) * 1000 + 500);
+        }
+        for (let i = 0; i < 16; i++) spawnFloater();
+        setInterval(spawnFloater, 2500);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GK Setup – Math Racing</title>
+    <meta name="description" content="Set up your General Knowledge race – choose teams and race length." />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        body {
+            padding: 20px 20px 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .top-bar {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 28px;
+        }
+
+        .top-bar h1 {
+            font-size: 1rem;
+        }
+
+        .setup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        @media (max-width: 680px) {
+            .setup-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            padding: 26px;
+        }
+
+        .card-title {
+            font-family: var(--font-racing);
+            font-size: .7rem;
+            letter-spacing: 2.5px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--panel-border);
+        }
+
+        .team-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        .team-a input:focus {
+            border-color: var(--blue);
+            box-shadow: 0 0 0 3px rgba(0, 198, 255, .15);
+        }
+
+        .team-b input:focus {
+            border-color: var(--red);
+            box-shadow: 0 0 0 3px rgba(255, 78, 80, .15);
+        }
+
+        .team-a .team-label {
+            color: var(--blue);
+        }
+
+        .team-b .team-label {
+            color: var(--red);
+        }
+
+        .team-label {
+            font-family: var(--font-racing);
+            font-size: .7rem;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+        }
+
+        .section-full {
+            grid-column: 1 / -1;
+        }
+
+        .start-wrap {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .preview-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            border-radius: 12px;
+            background: linear-gradient(90deg, rgba(0, 114, 255, .12), rgba(255, 152, 0, .12));
+            border: 1px solid rgba(255, 255, 255, .1);
+            width: 100%;
+            max-width: 520px;
+            font-family: var(--font-racing);
+            font-size: .85rem;
+        }
+
+        .preview-vs {
+            font-size: 1.3rem;
+            color: var(--gold);
+        }
+
+        /* ── Keyboard hint panel ── */
+        .keys-hint {
+            grid-column: 1 / -1;
+            padding: 18px 24px;
+        }
+
+        .keys-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .keys-team {
+            background: rgba(255, 255, 255, .04);
+            border-radius: 12px;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, .08);
+        }
+
+        .keys-team-label {
+            font-family: var(--font-racing);
+            font-size: .6rem;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .keys-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .key-chip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 34px;
+            height: 34px;
+            padding: 0 10px;
+            border-radius: 8px;
+            font-family: var(--font-racing);
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .key-a {
+            background: rgba(0, 198, 255, .15);
+            border: 1px solid rgba(0, 198, 255, .4);
+            color: var(--blue);
+        }
+
+        .key-b {
+            background: rgba(255, 152, 0, .15);
+            border: 1px solid rgba(255, 152, 0, .4);
+            color: var(--orange, #ff9800);
+        }
+
+        .key-arrow {
+            color: var(--text-dim);
+            font-size: .85rem;
+        }
+
+        .key-option {
+            font-size: .75rem;
+            color: var(--text-dim);
+        }
+
+        .links {
+            display: flex;
+            gap: 12px;
+            font-size: .8rem;
+        }
+
+        .links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .links a:hover {
+            color: var(--blue);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-animated"></div>
+
+    <div class="top-bar">
+        <h1 class="title-racing">🧠 GK Race – <span id="modeName">Car Race</span></h1>
+        <div class="links">
+            <a href="subject.html" id="backLink">← Subject</a>
+            <a href="index.html">🎮 Game Select</a>
+            <a href="leaderboard.html">🏆 Leaderboard</a>
+        </div>
+    </div>
+
+    <div class="setup-grid">
+
+        <!-- Match Settings -->
+        <div class="glass card">
+            <div class="card-title">⚙️ Match Settings</div>
+
+            <div class="form-group">
+                <label>Race Length</label>
+                <select id="raceLength">
+                    <option value="5">Quick Race (5 questions)</option>
+                    <option value="10" selected>Standard (10 questions)</option>
+                    <option value="15">Extended (15 questions)</option>
+                    <option value="20">Marathon (20 questions)</option>
+                </select>
+            </div>
+
+            <div class="form-group mt-3">
+                <label>Category</label>
+                <select id="category">
+                    <option value="all" selected>🌐 All Categories</option>
+                    <option value="science">🔬 Science</option>
+                    <option value="history">🏛️ History</option>
+                    <option value="geography">🌍 Geography</option>
+                    <option value="sports">⚽ Sports</option>
+                    <option value="general">💡 General</option>
+                </select>
+            </div>
+
+            <div class="form-group mt-3">
+                <label>Class / Grade</label>
+                <select id="classGrade">
+                    <option value="3">3rd Grade</option>
+                    <option value="4">4th Grade</option>
+                    <option value="5" selected>5th Grade</option>
+                    <option value="6">6th Grade</option>
+                    <option value="7">7th Grade</option>
+                    <option value="8">8th Grade</option>
+                    <option value="9">9th Grade</option>
+                    <option value="10">10th Grade</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Teams -->
+        <div class="glass card">
+            <div class="card-title">👥 Teams</div>
+            <div class="team-row">
+                <div class="team-a">
+                    <div class="team-label">🔵 Team A</div>
+                    <input type="text" id="nameA" placeholder="Enter name…" maxlength="14" />
+                </div>
+                <div class="team-b">
+                    <div class="team-label">🔴 Team B</div>
+                    <input type="text" id="nameB" placeholder="Enter name…" maxlength="14" />
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label>Avatar – Team A</label>
+                <div class="option-group" id="avatarA">
+                    <div class="option-card selected" data-val="👦"><span class="icon">👦</span>Boy</div>
+                    <div class="option-card" data-val="👧"><span class="icon">👧</span>Girl</div>
+                    <div class="option-card" data-val="🤖"><span class="icon">🤖</span>Robot</div>
+                    <div class="option-card" data-val="🥷"><span class="icon">🥷</span>Ninja</div>
+                    <div class="option-card" data-val="🏃"><span class="icon">🏃</span>Athlete</div>
+                </div>
+            </div>
+
+            <div class="form-group mt-3">
+                <label>Avatar – Team B</label>
+                <div class="option-group" id="avatarB">
+                    <div class="option-card" data-val="👦"><span class="icon">👦</span>Boy</div>
+                    <div class="option-card selected" data-val="👧"><span class="icon">👧</span>Girl</div>
+                    <div class="option-card" data-val="🤖"><span class="icon">🤖</span>Robot</div>
+                    <div class="option-card" data-val="🥷"><span class="icon">🥷</span>Ninja</div>
+                    <div class="option-card" data-val="🏃"><span class="icon">🏃</span>Athlete</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keyboard Controls hint -->
+        <div class="glass card keys-hint">
+            <div class="card-title">⌨️ Keyboard Controls</div>
+            <div class="keys-grid">
+                <div class="keys-team">
+                    <div class="keys-team-label neon-blue">🔵 TEAM A – Keys</div>
+                    <div class="keys-row">
+                        <span class="key-chip key-a">A</span>
+                        <span class="key-chip key-a">B</span>
+                        <span class="key-chip key-a">C</span>
+                        <span class="key-chip key-a">D</span>
+                        <span class="key-arrow">→</span>
+                        <span class="key-option">Select Option A / B / C / D</span>
+                    </div>
+                </div>
+                <div class="keys-team">
+                    <div class="keys-team-label neon-red">🔴 TEAM B – Keys</div>
+                    <div class="keys-row">
+                        <span class="key-chip key-b">1</span>
+                        <span class="key-chip key-b">2</span>
+                        <span class="key-chip key-b">3</span>
+                        <span class="key-chip key-b">4</span>
+                        <span class="key-arrow">→</span>
+                        <span class="key-option">Select Option A / B / C / D</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start -->
+        <div class="start-wrap">
+            <div class="preview-strip glass" id="previewStrip">
+                <span class="neon-blue" id="prevA">Team A</span>
+                <span class="preview-vs">VS</span>
+                <span class="neon-red" id="prevB">Team B</span>
+            </div>
+            <button class="btn btn-primary btn-xl" id="startBtn">
+                🧠 START GK RACE
+            </button>
+            <p style="font-size:.75rem;color:var(--text-dim);">Both teams ready? Press your letter / number keys to
+                answer!</p>
+        </div>
+
+    </div>
+
+    <script>
+        // ── URL params ─────────────────────────────────────────────────────
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'car';
+
+        const modeData = {
+            car: { name: 'Car Race', file: 'gk-game.html' },
+            tug: { name: 'Tug of War', file: 'gk-game.html' },
+            bike: { name: 'Bike Race', file: 'gk-game.html' },
+            rocket: { name: 'Rocket Race', file: 'gk-game.html' },
+        };
+        const md = modeData[gameMode] || modeData.car;
+        document.getElementById('modeName').textContent = md.name;
+        document.title = 'GK – ' + md.name + ' Setup';
+        document.getElementById('backLink').href = `subject.html?mode=${gameMode}`;
+
+        // ── Option card pickers ────────────────────────────────────────────
+        function makePicker(groupId) {
+            const group = document.getElementById(groupId);
+            group.querySelectorAll('.option-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    group.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                });
+            });
+        }
+        makePicker('avatarA');
+        makePicker('avatarB');
+
+        // ── Live preview ───────────────────────────────────────────────────
+        const nameA = document.getElementById('nameA');
+        const nameB = document.getElementById('nameB');
+        nameA.addEventListener('input', () => { document.getElementById('prevA').textContent = nameA.value || 'Team A'; });
+        nameB.addEventListener('input', () => { document.getElementById('prevB').textContent = nameB.value || 'Team B'; });
+
+        // ── Start ──────────────────────────────────────────────────────────
+        document.getElementById('startBtn').addEventListener('click', () => {
+            const tA = nameA.value.trim() || 'Team A';
+            const tB = nameB.value.trim() || 'Team B';
+            const avA = document.querySelector('#avatarA .option-card.selected')?.dataset.val || '👦';
+            const avB = document.querySelector('#avatarB .option-card.selected')?.dataset.val || '👧';
+            const cls = document.getElementById('classGrade').value;
+            const len = document.getElementById('raceLength').value;
+            const cat = document.getElementById('category').value;
+
+            const params = new URLSearchParams({ tA, tB, avA, avB, cls, len, cat, mode: gameMode });
+            window.location.href = md.file + '?' + params.toString();
+        });
+    </script>
+</body>
+
+</html>
