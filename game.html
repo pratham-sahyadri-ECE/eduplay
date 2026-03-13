@@ -446,6 +446,159 @@
     <script src="audio.js"></script>
     <script src="physics.js"></script>
     <script src="game.js"></script>
+    
+    <!-- Enhanced Keypad Integration -->
+    <script>
+    // Math Racing Game - Enhanced WebSocket Keypad Integration
+    (function() {
+        'use strict';
+        
+        // Configuration
+        const WS_HOST = 'localhost'; // Replace with RASPBERRY_PI_IP if using hardware
+        const WS_PORT = 8765;
+        const RECONNECT_DELAY = 3000;
+        
+        let socket = null;
+        let reconnectTimer = null;
+        let isConnected = false;
+        
+        // Team keypad mappings
+        const SUBMIT_KEY = '#';
+        const CLEAR_KEY = '*';
+        
+        // Connect to WebSocket server
+        function connect() {
+            try {
+                socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}`);
+                
+                socket.onopen = function() {
+                    console.log('✅ Keypad connected');
+                    isConnected = true;
+                    updateConnectionStatus(true);
+                    if (reconnectTimer) {
+                        clearTimeout(reconnectTimer);
+                        reconnectTimer = null;
+                    }
+                };
+                
+                socket.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleKeypadInput(data);
+                    } catch (e) {
+                        // Handle raw string format: "A:24" or "B:15"
+                        const raw = event.data.trim();
+                        const match = raw.match(/^([AB]):(.+)$/i);
+                        if (match) {
+                            handleRawInput(match[1].toUpperCase(), match[2]);
+                        }
+                    }
+                };
+                
+                socket.onerror = function(error) {
+                    console.error('❌ WebSocket error:', error);
+                    isConnected = false;
+                    updateConnectionStatus(false);
+                };
+                
+                socket.onclose = function() {
+                    console.log('🔌 Keypad disconnected');
+                    isConnected = false;
+                    updateConnectionStatus(false);
+                    reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
+                };
+                
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
+            }
+        }
+        
+        // Handle keypad input
+        function handleKeypadInput(data) {
+            const key = data.key;
+            const team = data.team || detectTeam(key);
+            console.log('Keypad input:', key, 'Team:', team);
+            handleMathInput(team, key);
+        }
+        
+        // Handle raw format input (e.g., "A:24")
+        function handleRawInput(team, value) {
+            console.log('Raw input:', team, value);
+            const input = document.getElementById('input' + team);
+            if (input) {
+                input.value = value;
+                const submitBtn = document.getElementById('submit' + team);
+                if (submitBtn) submitBtn.click();
+            }
+        }
+        
+        // Detect team from key press
+        function detectTeam(key) {
+            // Simple detection - can be enhanced based on keypad layout
+            return null;
+        }
+        
+        // Handle Math mode input
+        function handleMathInput(team, key) {
+            if (!team) return;
+            const input = document.getElementById('input' + team);
+            if (!input) return;
+            
+            if (key === SUBMIT_KEY) {
+                const submitBtn = document.getElementById('submit' + team);
+                if (submitBtn) submitBtn.click();
+            } else if (key === CLEAR_KEY) {
+                input.value = '';
+            } else if (/^[0-9\-.]$/.test(key)) {
+                input.value += key;
+                input.focus();
+            }
+        }
+        
+        // Update connection status indicator
+        function updateConnectionStatus(connected) {
+            const dot = document.getElementById('wsDot');
+            const status = document.getElementById('wsStatus');
+            
+            if (dot) {
+                dot.className = 'ws-dot ' + (connected ? 'connected' : 'disconnected');
+            }
+            
+            if (status) {
+                status.textContent = connected ? 'Keypad Connected' : 'Keypad Disconnected';
+            }
+        }
+        
+        // Send command to hardware
+        function sendCommand(cmd) {
+            if (socket && isConnected) {
+                try {
+                    socket.send(cmd);
+                    console.log('→ Sent:', cmd);
+                } catch (e) {
+                    console.error('Failed to send command:', e);
+                }
+            }
+        }
+        
+        // Expose to global scope
+        window.KeypadBridge = {
+            isConnected: () => isConnected,
+            send: sendCommand,
+            reconnect: connect
+        };
+        
+        // Auto-connect on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', connect);
+        } else {
+            connect();
+        }
+        
+    })();
+    </script>
+    
     <script src="script.js"></script>
 </body>
 
