@@ -477,64 +477,121 @@
     <script>
     (function() {
         'use strict';
-        const WS_HOST = '172.21.7.4';
+        
+        // Configuration
+        const WS_HOST = '10.113.86.153';
         const WS_PORT = 8765;
         const RECONNECT_DELAY = 3000;
+        
+        // Detect if we're on HTTPS
+        const isSecure = window.location.protocol === 'https:';
+        
+        // For HTTPS sites, we cannot connect to ws:// due to Mixed Content Policy
+        // Options:
+        // 1. Use wss:// (requires SSL on Raspberry Pi)
+        // 2. Test on HTTP version of site
+        // 3. Disable for production HTTPS
+        
+        if (isSecure) {
+            console.warn('⚠️ HTTPS detected - WebSocket connection to ws:// is blocked by browser');
+            console.warn('💡 Solutions:');
+            console.warn('   1. Test locally: http://localhost:8000/tug.html');
+            console.warn('   2. Set up WSS (secure WebSocket) on Raspberry Pi');
+            console.warn('   3. Use browser flag (not recommended): --allow-running-insecure-content');
+            
+            // Update UI to show warning
+            const status = document.getElementById('wsStatus');
+            if (status) {
+                status.textContent = 'HTTPS blocks WS - Use HTTP or WSS';
+                status.style.color = '#ff9800';
+            }
+            
+            // Don't attempt connection
+            return;
+        }
+        
         let socket = null;
         let reconnectTimer = null;
         let isConnected = false;
         
         function connect() {
             try {
-                socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}`);
+                const wsUrl = `ws://${WS_HOST}:${WS_PORT}`;
+                console.log('🔌 Attempting connection to:', wsUrl);
+                socket = new WebSocket(wsUrl);
                 socket.onopen = function() {
-                    console.log('✅ Keypad connected');
+                    console.log('✅ Keypad connected to Raspberry Pi');
                     isConnected = true;
                     if (typeof setWsDot === 'function') setWsDot(true);
                     if (reconnectTimer) clearTimeout(reconnectTimer);
                 };
                 socket.onmessage = function(event) {
+                    console.log('📥 Received from keypad:', event.data);
                     try {
                         const data = JSON.parse(event.data);
                         if (data.team && data.key) {
-                            handleInput(data.team, data.key);
+                            handleKeyFromKeypad(data.key, data.team);
                         }
                     } catch (e) {
                         const raw = event.data.trim();
                         const match = raw.match(/^([AB]):(.+)$/i);
                         if (match && typeof handleAnswer === 'function') {
+                            console.log('📊 Parsed - Team:', match[1], 'Value:', match[2]);
                             handleAnswer(match[1].toUpperCase(), match[2]);
                         }
                     }
                 };
                 socket.onerror = function() {
+                    console.error('❌ WebSocket error');
                     isConnected = false;
                     if (typeof setWsDot === 'function') setWsDot(false);
                 };
                 socket.onclose = function() {
+                    console.log('🔌 Keypad disconnected');
                     isConnected = false;
                     if (typeof setWsDot === 'function') setWsDot(false);
                     reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
                 };
             } catch (error) {
+                console.error('Connection failed:', error);
                 reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
             }
         }
         
-        function handleInput(team, key) {
+        function handleKeyFromKeypad(key, team) {
+            console.log('🎮 Keypad input:', key, 'Team:', team);
             const input = document.getElementById('input' + team);
             if (!input) return;
-            if (key === '#') {
-                const btn = document.getElementById('submit' + team);
-                if (btn) btn.click();
-            } else if (key === '*') {
-                input.value = '';
-            } else if (/^[0-9\-.]$/.test(key)) {
-                input.value += key;
+            
+            switch(key) {
+                case '#':
+                case 'SUBMIT':
+                    const btn = document.getElementById('submit' + team);
+                    if (btn) {
+                        console.log('📤 Submitting for Team', team);
+                        btn.click();
+                    }
+                    break;
+                case '*':
+                case 'CLEAR':
+                    input.value = '';
+                    console.log('🗑️ Cleared Team', team);
+                    break;
+                default:
+                    if (/^[0-9\-.]$/.test(key)) {
+                        input.value += key;
+                        console.log('➕ Added:', key);
+                    }
             }
         }
         
-        window.KeypadBridge = { isConnected: () => isConnected, reconnect: connect };
+        window.KeypadBridge = { 
+            isConnected: () => isConnected, 
+            reconnect: connect,
+            handleKey: handleKeyFromKeypad
+        };
+        
+        console.log('🚀 Initializing Raspberry Pi connection...');
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', connect);
         } else {
@@ -544,27 +601,15 @@
     </script>
     
     <script>
-        // ── WebSocket (ESP32 keypad) ─────────────────────────────────────
-        let ws = null, wsConnected = false;
-        function connectWS() {
-            try {
-                ws = new WebSocket('ws://localhost:8765');
-                ws.onopen = () => { wsConnected = true; setWsDot(true); };
-                ws.onclose = () => { wsConnected = false; setWsDot(false); setTimeout(connectWS, 3000); };
-                ws.onerror = () => { };
-                ws.onmessage = (ev) => {
-                    const match = ev.data.trim().match(/^([AB]):(.+)$/i);
-                    if (match && GS.state === GameLogic.STATE.RACING && GS.currentQuestion) {
-                        handleAnswer(match[1].toUpperCase(), match[2]);
-                    }
-                };
-            } catch (e) { }
+        // ── Legacy WebSocket placeholder (now handled by KeypadBridge) ────
+        function sendWS(cmd) { 
+            // Legacy function - kept for compatibility
+            console.log('📤 Legacy sendWS called:', cmd);
         }
-        function sendWS(cmd) { if (ws && wsConnected) try { ws.send(cmd); } catch (e) { } }
         function setWsDot(on) {
             const dot = document.getElementById('wsDot'), txt = document.getElementById('wsStatus');
             if (dot) dot.className = 'ws-dot ' + (on ? 'connected' : 'disconnected');
-            if (txt) txt.textContent = on ? 'ESP32 Connected' : 'No Hardware';
+            if (txt) txt.textContent = on ? 'Raspberry Pi ' + (on ? 'Connected' : 'Disconnected');
         }
 
         // ── Config from URL ──────────────────────────────────────────────
@@ -973,8 +1018,9 @@
         // ── Init ──────────────────────────────────────────────────────────
         document.getElementById('teamAName').textContent = CONFIG.nameA;
         document.getElementById('teamBName').textContent = CONFIG.nameB;
+        document.getElementById('labelA').textContent = '← ' + CONFIG.nameA;
+        document.getElementById('labelB').textContent = CONFIG.nameB + ' →';
 
-        connectWS();
         startCountdown();
     </script>
 </body>

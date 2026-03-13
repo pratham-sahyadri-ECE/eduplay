@@ -1013,9 +1013,16 @@
     (function() {
         'use strict';
         
-        const WS_HOST = '172.21.7.4'; // Raspberry Pi IP address
+        const WS_HOST = '10.113.86.153'; // Raspberry Pi IP address
         const WS_PORT = 8765;
         const RECONNECT_DELAY = 3000;
+        
+        const isSecure = window.location.protocol === 'https:';
+        
+        if (isSecure) {
+            console.warn('⚠️ HTTPS detected - WebSocket blocked. Use HTTP or WSS');
+            return;
+        }
         
         let socket = null;
         let reconnectTimer = null;
@@ -1030,67 +1037,75 @@
                 socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}`);
                 
                 socket.onopen = function() {
-                    console.log('✅ Keypad connected');
+                    console.log('✅ Keypad connected to Raspberry Pi');
                     isConnected = true;
                     if (reconnectTimer) clearTimeout(reconnectTimer);
                 };
                 
                 socket.onmessage = function(event) {
+                    console.log('📥 Received from keypad:', event.data);
                     try {
                         const data = JSON.parse(event.data);
-                        handleKeypadInput(data);
+                        handleKeyFromKeypad(data.key, data.team);
                     } catch (e) {
                         const raw = event.data.trim();
                         const match = raw.match(/^([AB]):(.+)$/i);
                         if (match) {
+                            console.log('📊 Parsed - Team:', match[1], 'Option:', match[2]);
                             handleRawInput(match[1].toUpperCase(), match[2]);
                         }
                     }
                 };
                 
                 socket.onerror = function() {
+                    console.error('❌ WebSocket error');
                     isConnected = false;
                 };
                 
                 socket.onclose = function() {
+                    console.log('🔌 Keypad disconnected');
                     isConnected = false;
                     reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
                 };
                 
             } catch (error) {
+                console.error('Connection failed:', error);
                 reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
             }
         }
         
-        function handleKeypadInput(data) {
-            const key = data.key.toUpperCase();
-            const team = data.team || detectTeam(key);
+        function handleKeyFromKeypad(key, team) {
+            console.log('🎮 GK Keypad input:', key, 'Team:', team);
+            const keyUpper = key.toUpperCase();
+            
+            // Detect team if not provided
+            if (!team) {
+                if (TEAM_A_KEYS.includes(keyUpper)) team = 'A';
+                else if (TEAM_B_KEYS.includes(key)) team = 'B';
+            }
             
             if (!team) return;
             
+            // Map keys to option indices
             let optionIndex = -1;
             if (team === 'A') {
-                optionIndex = TEAM_A_KEYS.indexOf(key);
+                optionIndex = TEAM_A_KEYS.indexOf(keyUpper);
             } else if (team === 'B') {
                 optionIndex = TEAM_B_KEYS.indexOf(key);
             }
             
             if (optionIndex >= 0 && optionIndex <= 3) {
+                console.log('🎯 Triggering option', optionIndex, 'for Team', team);
                 triggerGKOption(team, optionIndex);
             }
         }
         
         function handleRawInput(team, value) {
+            console.log('📝 Processing GK option - Team:', team, 'Value:', value);
             const optionIndex = parseInt(value);
             if (!isNaN(optionIndex) && optionIndex >= 0 && optionIndex <= 3) {
                 triggerGKOption(team, optionIndex);
             }
-        }
-        
-        function detectTeam(key) {
-            if (TEAM_A_KEYS.includes(key)) return 'A';
-            if (TEAM_B_KEYS.includes(key)) return 'B';
-            return null;
         }
         
         function triggerGKOption(team, index) {
@@ -1098,18 +1113,23 @@
             if (container) {
                 const buttons = container.querySelectorAll('.opt-btn');
                 if (buttons[index]) {
+                    console.log('✅ Clicking option button', index, 'for Team', team);
                     buttons[index].click();
                     buttons[index].classList.add('pressed');
                     setTimeout(() => buttons[index].classList.remove('pressed'), 200);
                 }
+            } else {
+                console.error('❌ Options container not found for Team', team);
             }
         }
         
         window.KeypadBridge = {
             isConnected: () => isConnected,
-            reconnect: connect
+            reconnect: connect,
+            handleKey: handleKeyFromKeypad
         };
         
+        console.log('🚀 Initializing Raspberry Pi GK keypad connection...');
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', connect);
         } else {

@@ -473,9 +473,20 @@
     <script>
     (function() {
         'use strict';
-        const WS_HOST = '172.21.7.4';
+        
+        const WS_HOST = '10.113.86.153';
         const WS_PORT = 8765;
         const RECONNECT_DELAY = 3000;
+        
+        const isSecure = window.location.protocol === 'https:';
+        
+        if (isSecure) {
+            console.warn('⚠️ HTTPS detected - WebSocket blocked. Use HTTP or WSS');
+            const status = document.getElementById('wsStatus');
+            if (status) status.textContent = 'HTTPS blocks WS';
+            return;
+        }
+        
         let socket = null;
         let reconnectTimer = null;
         let isConnected = false;
@@ -484,53 +495,78 @@
             try {
                 socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}`);
                 socket.onopen = function() {
-                    console.log('✅ Keypad connected');
+                    console.log('✅ Keypad connected to Raspberry Pi');
                     isConnected = true;
                     if (typeof setWsDot === 'function') setWsDot(true);
                     if (reconnectTimer) clearTimeout(reconnectTimer);
                 };
                 socket.onmessage = function(event) {
+                    console.log('📥 Received from keypad:', event.data);
                     try {
                         const data = JSON.parse(event.data);
                         if (data.team && data.key) {
-                            handleInput(data.team, data.key);
+                            handleKeyFromKeypad(data.key, data.team);
                         }
                     } catch (e) {
                         const raw = event.data.trim();
                         const match = raw.match(/^([AB]):(.+)$/i);
                         if (match && typeof handleAnswer === 'function') {
+                            console.log('📊 Parsed - Team:', match[1], 'Value:', match[2]);
                             handleAnswer(match[1].toUpperCase(), match[2]);
                         }
                     }
                 };
                 socket.onerror = function() {
+                    console.error('❌ WebSocket error');
                     isConnected = false;
                     if (typeof setWsDot === 'function') setWsDot(false);
                 };
                 socket.onclose = function() {
+                    console.log('🔌 Keypad disconnected');
                     isConnected = false;
                     if (typeof setWsDot === 'function') setWsDot(false);
                     reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
                 };
             } catch (error) {
+                console.error('Connection failed:', error);
                 reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
             }
         }
         
-        function handleInput(team, key) {
+        function handleKeyFromKeypad(key, team) {
+            console.log('🎮 Keypad input:', key, 'Team:', team);
             const input = document.getElementById('input' + team);
             if (!input) return;
-            if (key === '#') {
-                const btn = document.getElementById('submit' + team);
-                if (btn) btn.click();
-            } else if (key === '*') {
-                input.value = '';
-            } else if (/^[0-9\-.]$/.test(key)) {
-                input.value += key;
+            
+            switch(key) {
+                case '#':
+                case 'SUBMIT':
+                    const btn = document.getElementById('submit' + team);
+                    if (btn) {
+                        console.log('📤 Submitting for Team', team);
+                        btn.click();
+                    }
+                    break;
+                case '*':
+                case 'CLEAR':
+                    input.value = '';
+                    console.log('🗑️ Cleared Team', team);
+                    break;
+                default:
+                    if (/^[0-9\-.]$/.test(key)) {
+                        input.value += key;
+                        console.log('➕ Added:', key);
+                    }
             }
         }
         
-        window.KeypadBridge = { isConnected: () => isConnected, reconnect: connect };
+        window.KeypadBridge = { 
+            isConnected: () => isConnected, 
+            reconnect: connect,
+            handleKey: handleKeyFromKeypad
+        };
+        
+        console.log('🚀 Initializing Raspberry Pi connection...');
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', connect);
         } else {

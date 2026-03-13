@@ -454,9 +454,26 @@
         'use strict';
         
         // Configuration
-        const WS_HOST = '172.21.7.4'; // Raspberry Pi IP address
+        const WS_HOST = '10.113.86.153'; // Raspberry Pi IP address
         const WS_PORT = 8765;
         const RECONNECT_DELAY = 3000;
+        
+        // Detect if we're on HTTPS
+        const isSecure = window.location.protocol === 'https:';
+        
+        if (isSecure) {
+            console.warn('⚠️ HTTPS detected - WebSocket connection to ws:// is blocked by browser');
+            console.warn('💡 Solutions:');
+            console.warn('   1. Test locally: http://localhost:8000/game.html');
+            console.warn('   2. Set up WSS (secure WebSocket) on Raspberry Pi');
+            
+            const status = document.getElementById('wsStatus');
+            if (status) {
+                status.textContent = 'HTTPS blocks WS - Use HTTP or WSS';
+                status.style.color = '#ff9800';
+            }
+            return;
+        }
         
         let socket = null;
         let reconnectTimer = null;
@@ -472,7 +489,7 @@
                 socket = new WebSocket(`ws://${WS_HOST}:${WS_PORT}`);
                 
                 socket.onopen = function() {
-                    console.log('✅ Keypad connected');
+                    console.log('✅ Keypad connected to Raspberry Pi');
                     isConnected = true;
                     updateConnectionStatus(true);
                     if (reconnectTimer) {
@@ -482,15 +499,21 @@
                 };
                 
                 socket.onmessage = function(event) {
+                    console.log('📥 Received from keypad:', event.data);
                     try {
                         const data = JSON.parse(event.data);
-                        handleKeypadInput(data);
+                        handleKeyFromKeypad(data.key, data.team);
                     } catch (e) {
                         // Handle raw string format: "A:24" or "B:15"
                         const raw = event.data.trim();
                         const match = raw.match(/^([AB]):(.+)$/i);
                         if (match) {
-                            handleRawInput(match[1].toUpperCase(), match[2]);
+                            const team = match[1].toUpperCase();
+                            const value = match[2];
+                            console.log('📊 Parsed input - Team:', team, 'Value:', value);
+                            handleRawInput(team, value);
+                        } else {
+                            console.warn('⚠️ Unknown message format:', raw);
                         }
                     }
                 };
@@ -502,57 +525,128 @@
                 };
                 
                 socket.onclose = function() {
-                    console.log('🔌 Keypad disconnected');
+                    console.log('🔌 Keypad disconnected from Raspberry Pi');
                     isConnected = false;
                     updateConnectionStatus(false);
                     reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
                 };
                 
             } catch (error) {
-                console.error('Failed to connect:', error);
+                console.error('Failed to connect to Raspberry Pi:', error);
                 reconnectTimer = setTimeout(connect, RECONNECT_DELAY);
             }
         }
         
-        // Handle keypad input
-        function handleKeypadInput(data) {
-            const key = data.key;
-            const team = data.team || detectTeam(key);
-            console.log('Keypad input:', key, 'Team:', team);
-            handleMathInput(team, key);
+        // Handle keypad input from Raspberry Pi
+        function handleKeyFromKeypad(key, team) {
+            console.log('🎮 Keypad input:', key, 'Team:', team);
+            
+            // Detect team if not provided
+            if (!team) {
+                team = detectTeamFromKey(key);
+            }
+            
+            if (!team) {
+                console.warn('⚠️ Could not detect team for key:', key);
+                return;
+            }
+            
+            // Map keypad keys to game actions
+            switch(key) {
+                case '#':
+                case 'SUBMIT':
+                    gameAction('SUBMIT', team);
+                    break;
+                case '*':
+                case 'CLEAR':
+                    gameAction('CLEAR', team);
+                    break;
+                case 'A':
+                case 'B':
+                case 'C':
+                case 'D':
+                    // For GK mode (not used in math mode)
+                    gameAction('OPTION', team, key);
+                    break;
+                default:
+                    // Handle numeric input
+                    if (!isNaN(key) || key === '-' || key === '.') {
+                        gameAction('NUMBER', team, key);
+                    }
+            }
         }
         
         // Handle raw format input (e.g., "A:24")
         function handleRawInput(team, value) {
-            console.log('Raw input:', team, value);
+            console.log('📝 Processing answer - Team:', team, 'Value:', value);
+            
+            // Directly submit the answer
             const input = document.getElementById('input' + team);
             if (input) {
                 input.value = value;
-                const submitBtn = document.getElementById('submit' + team);
-                if (submitBtn) submitBtn.click();
+                input.focus();
+                
+                // Auto-submit after a short delay
+                setTimeout(() => {
+                    const submitBtn = document.getElementById('submit' + team);
+                    if (submitBtn) {
+                        console.log('✅ Auto-submitting answer for Team', team);
+                        submitBtn.click();
+                    }
+                }, 100);
+            } else {
+                console.error('❌ Input field not found for Team', team);
             }
         }
         
-        // Detect team from key press
-        function detectTeam(key) {
-            // Simple detection - can be enhanced based on keypad layout
+        // Detect team from key press pattern
+        function detectTeamFromKey(key) {
+            // This can be enhanced based on your keypad layout
+            // For now, return null and let the keypad send team info
             return null;
         }
         
-        // Handle Math mode input
-        function handleMathInput(team, key) {
-            if (!team) return;
-            const input = document.getElementById('input' + team);
-            if (!input) return;
+        // Execute game actions based on keypad input
+        function gameAction(action, team, value = null) {
+            console.log('🎯 Game action:', action, 'Team:', team, 'Value:', value);
             
-            if (key === SUBMIT_KEY) {
-                const submitBtn = document.getElementById('submit' + team);
-                if (submitBtn) submitBtn.click();
-            } else if (key === CLEAR_KEY) {
-                input.value = '';
-            } else if (/^[0-9\-.]$/.test(key)) {
-                input.value += key;
-                input.focus();
+            const input = document.getElementById('input' + team);
+            const submitBtn = document.getElementById('submit' + team);
+            
+            switch(action) {
+                case 'NUMBER':
+                    // Append number to input field
+                    if (input) {
+                        input.value += value;
+                        input.focus();
+                        console.log('➕ Added digit:', value, 'Current value:', input.value);
+                    }
+                    break;
+                    
+                case 'SUBMIT':
+                    // Submit the answer
+                    if (submitBtn) {
+                        console.log('📤 Submitting answer for Team', team);
+                        submitBtn.click();
+                    }
+                    break;
+                    
+                case 'CLEAR':
+                    // Clear the input field
+                    if (input) {
+                        input.value = '';
+                        input.focus();
+                        console.log('🗑️ Cleared input for Team', team);
+                    }
+                    break;
+                    
+                case 'OPTION':
+                    // For GK mode (handled differently)
+                    console.log('🔤 Option selected:', value);
+                    break;
+                    
+                default:
+                    console.warn('⚠️ Unknown action:', action);
             }
         }
         
@@ -566,8 +660,12 @@
             }
             
             if (status) {
-                status.textContent = connected ? 'Keypad Connected' : 'Keypad Disconnected';
+                status.textContent = connected 
+                    ? 'Raspberry Pi Connected' 
+                    : 'Raspberry Pi Disconnected';
             }
+            
+            console.log(connected ? '🟢 Status: Connected' : '🔴 Status: Disconnected');
         }
         
         // Send command to hardware
@@ -575,10 +673,12 @@
             if (socket && isConnected) {
                 try {
                     socket.send(cmd);
-                    console.log('→ Sent:', cmd);
+                    console.log('📤 Sent to Raspberry Pi:', cmd);
                 } catch (e) {
-                    console.error('Failed to send command:', e);
+                    console.error('❌ Failed to send command:', e);
                 }
+            } else {
+                console.warn('⚠️ Cannot send - not connected to Raspberry Pi');
             }
         }
         
@@ -586,10 +686,12 @@
         window.KeypadBridge = {
             isConnected: () => isConnected,
             send: sendCommand,
-            reconnect: connect
+            reconnect: connect,
+            handleKey: handleKeyFromKeypad
         };
         
         // Auto-connect on page load
+        console.log('🚀 Initializing Raspberry Pi keypad connection...');
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', connect);
         } else {
